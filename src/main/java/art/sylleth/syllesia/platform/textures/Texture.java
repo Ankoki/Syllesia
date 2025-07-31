@@ -1,5 +1,6 @@
 package art.sylleth.syllesia.platform.textures;
 
+import art.sylleth.syllesia.Syllesia;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -88,7 +89,7 @@ public class Texture {
         this.size = size;
         this.id = id;
         this.pixels = new int[size * size];
-        if (id != 0) // We ignore the AIR texture, it's present to
+        if (id != 0) // We ignore the AIR texture, it's present to stop other textures being registered over it.
             this.assignPixels();
     }
 
@@ -106,7 +107,7 @@ public class Texture {
             int height = image.getHeight();
             image.getRGB(0, 0, width, height, pixels, 0, width);
         } catch (IOException | URISyntaxException ex) {
-            ex.printStackTrace();
+            Syllesia.getInstance().getLogger().error(ex, Texture.class, 110);
         }
     }
 

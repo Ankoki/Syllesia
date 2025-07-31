@@ -36,7 +36,7 @@ public class Camera implements KeyListener {
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
+    public void keyTyped(KeyEvent event) {
         // TODO inventory interactions here?
     }
 
@@ -65,7 +65,7 @@ public class Camera implements KeyListener {
     }
 
     /**
-     * Updates the world as we see it.
+     * Updates the world as the player sees it.
      *
      * @param world the world.
      */

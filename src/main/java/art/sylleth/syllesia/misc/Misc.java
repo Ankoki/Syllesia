@@ -4,6 +4,9 @@ import java.awt.*;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
+/**
+ * Class containing miscellaneous functions that can be utilised throughout the code.
+ */
 public class Misc {
 
     private static final DecimalFormat DECIMAL_FORMATTER = new DecimalFormat("#.###");

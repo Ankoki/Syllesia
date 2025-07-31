@@ -5,6 +5,9 @@ import art.sylleth.syllesia.platform.Location;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.textures.Texture;
 
+/**
+ * Handles displaying a cameras view.
+ */
 public class Screen {
 
     private final int[][] map;
@@ -111,7 +114,7 @@ public class Screen {
                     colour = texture.getPixels()[Math.min(textureX + (textureY * texture.getSize()), texture.getPixels().length - 1)];
                 else
                     colour = texture.getPixels()[Math.min((textureX + (textureY * texture.getSize()) >> 1) & 8355711, texture.getPixels().length - 1)];
-                pixels[x + y * (width)] = colour;
+                pixels[x + y * width] = colour;
             }
         }
         return pixels;

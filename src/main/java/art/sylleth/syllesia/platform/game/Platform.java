@@ -1,6 +1,8 @@
 package art.sylleth.syllesia.platform.game;
 
+import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.config.Settings;
+import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.platform.Location;
 import art.sylleth.syllesia.platform.screen.Screen;
@@ -31,15 +33,16 @@ public class Platform extends JFrame implements Runnable {
             {1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4}
     };
 
-    private static final int SCREEN_WIDTH = 640;
-    private static final int SCREEN_HEIGHT = 480;
+    private static final int SCREEN_WIDTH = 540;
+    private static final int SCREEN_HEIGHT = 380;
     public static final int MAP_HEIGHT = BASE_MAP.length;
     public static final int MAP_WIDTH = BASE_MAP[0].length;
 
     private final Thread thread;
-    private BufferedImage image;
+    private final BufferedImage image;
     private boolean active;
     private final int[] pixels;
+    private final Player player;
     private final Camera camera;
     private final Screen screen;
     private final JPanel game;
@@ -47,11 +50,12 @@ public class Platform extends JFrame implements Runnable {
     /**
      * Creates and launches a new platform for Syllesia to run on.
      */
-    public Platform() {
+    public Platform(Player player) {
         this.thread = new Thread(this);
         this.image = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         this.pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
-        this.camera = new Camera(new Location(4.5, 4.5, 1, 0, 0, -0.4));
+        this.player = player;
+        this.camera = this.player.getCamera();
         this.screen = new Screen(BASE_MAP, SCREEN_WIDTH, SCREEN_HEIGHT);
         this.game = new JPanel();
         this.game.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -164,7 +168,7 @@ public class Platform extends JFrame implements Runnable {
             delta += (now - last) / interval;
             last = now;
             while (delta >= 1) {
-                this.screen.update(this.camera, this.pixels);
+                this.screen.update(this.player.getCamera(), this.pixels);
                 this.camera.update(Platform.BASE_MAP);
                 delta--;
             }
@@ -197,7 +201,9 @@ public class Platform extends JFrame implements Runnable {
         this.active = false;
         try {
             thread.join();
-        } catch (InterruptedException ex) { ex.printStackTrace(); }
+        } catch (InterruptedException ex) {
+            Syllesia.getInstance().getLogger().error(ex, Platform.class, 203);
+        }
     }
 
 }

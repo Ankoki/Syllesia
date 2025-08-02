@@ -1,11 +1,11 @@
 package art.sylleth.syllesia.handlers.event;
 
 /**
- * Class to allow events to be prevented from happening.<br>
- * If you're creating an event, after calling it, you should check the {@link Preventable#isPrevented()} value<br>
+ * Class to create events that can be prevented from happening.<br>
+ * If you're creating an event, after calling it, you should check the {@link PreventableEvent#isPrevented()} value<br>
  * before executing the event's code.
  */
-public abstract class Preventable {
+public abstract class PreventableEvent extends Event {
 
     private boolean prevented = false;
 

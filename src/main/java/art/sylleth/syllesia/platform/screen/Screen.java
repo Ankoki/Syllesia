@@ -32,9 +32,8 @@ public class Screen {
      *
      * @param camera the camera.
      * @param pixels the pixels to change.
-     * @return the updated pixels.
      */
-    public int[] update(Camera camera, int[] pixels) {
+    public void update(Camera camera, int[] pixels) {
         // Clear camera.
         for (int i = 0; i < (pixels.length / 2); i++)
             if (pixels[i] != Misc.fromHex("82C8E5").getRGB())
@@ -101,23 +100,21 @@ public class Screen {
                 drawEnd = height - 1;
             Texture texture = Texture.fromId(map[mapX][mapY] - 1);
             double wallX;
-            if (side == 1)
-                wallX = (location.getX() + ((mapY - location.getY() + (1.0 - stepY) / 2) / rayDirY) * rayDirX);
+            if (side == 0)
+                wallX = location.getY() + perpWallDist * rayDirY;
             else
-                wallX = (location.getY() + ((mapX - location.getX() + (1.0 - stepX) / 2) / rayDirX) * rayDirY);
-            wallX = Math.floor(wallX);
+                wallX = location.getX() + perpWallDist * rayDirX;
+            wallX -= Math.floor(wallX);
             int textureX = (int) (wallX * texture.getSize()); // Texture won't be null as any value that is 0 is skipped over.
             for (int y = drawStart; y < drawEnd; y++) {
                 int textureY = (((y * 2 - height + lineHeight) << 6) / lineHeight) / 2;
-                int colour;
-                if (side == 0)
-                    colour = texture.getPixels()[Math.min(textureX + (textureY * texture.getSize()), texture.getPixels().length - 1)];
-                else
-                    colour = texture.getPixels()[Math.min((textureX + (textureY * texture.getSize()) >> 1) & 8355711, texture.getPixels().length - 1)];
+                int texIndex = Math.min(textureX + textureY * texture.getSize(), texture.getPixels().length - 1);
+                int colour = texture.getPixels()[texIndex];
+                if (side == 1)
+                    colour = (colour >> 1) & 0x7F7F7F; // Bitshift to darken color by 50%.
                 pixels[x + y * width] = colour;
             }
         }
-        return pixels;
     }
 
 }

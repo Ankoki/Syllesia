@@ -9,6 +9,9 @@ import art.sylleth.syllesia.platform.screen.Screen;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
@@ -33,10 +36,8 @@ public class Platform extends JFrame implements Runnable {
             {1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4}
     };
 
-    private static final int SCREEN_WIDTH = 540;
-    private static final int SCREEN_HEIGHT = 380;
-    public static final int MAP_HEIGHT = BASE_MAP.length;
-    public static final int MAP_WIDTH = BASE_MAP[0].length;
+    private static final int SCREEN_WIDTH = 720;
+    private static final int SCREEN_HEIGHT = 520;
 
     private final Thread thread;
     private final BufferedImage image;
@@ -45,7 +46,16 @@ public class Platform extends JFrame implements Runnable {
     private final Player player;
     private final Camera camera;
     private final Screen screen;
-    private final JPanel game;
+    private final Canvas game = new Canvas();
+    private final JLayeredPane pane = this.getLayeredPane();
+    private JPanel debugPanel;
+    private JLabel coords,
+            xCoord,
+            yCoord,
+            xDir,
+            yDir,
+            xPlane,
+            yPlane;
 
     /**
      * Creates and launches a new platform for Syllesia to run on.
@@ -57,11 +67,12 @@ public class Platform extends JFrame implements Runnable {
         this.player = player;
         this.camera = this.player.getCamera();
         this.screen = new Screen(BASE_MAP, SCREEN_WIDTH, SCREEN_HEIGHT);
-        this.game = new JPanel();
-        this.game.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-        this.addKeyListener(this.camera);
-        this.add(this.game);
+        this.game.setBounds(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.game.addKeyListener(this.camera);
+        this.game.addMouseListener(this.camera);
+        this.pane.add(game, JLayeredPane.DEFAULT_LAYER);
         this.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.setLayout(null);
         this.setResizable(false);
         this.setLocationRelativeTo(null);
         this.setTitle("[ Syllesia ]");
@@ -72,15 +83,6 @@ public class Platform extends JFrame implements Runnable {
         this.setVisible(true);
         this.start();
     }
-
-    private JPanel debugPanel;
-    private JLabel coords,
-                       xCoord,
-                       yCoord,
-                       xDir,
-                       yDir,
-                       xPlane,
-                       yPlane;
 
     /**
      * Initiates the debug method. Allows us to see the game options easier.
@@ -94,14 +96,7 @@ public class Platform extends JFrame implements Runnable {
         this.yDir = new JLabel("YDir: " + Misc.toNPoints(location.getYDir(), 3));
         this.xPlane = new JLabel("XPln: " + Misc.toNPoints(location.getXPlane(), 3));
         this.yPlane = new JLabel("YPln: " + Misc.toNPoints(location.getYPlane(), 3));
-        this.coords.setSize(150, 20);
-        this.xCoord.setSize(75, 20);
-        this.yCoord.setSize(75, 20);
-        this.xDir.setSize(75, 20);
-        this.yDir.setSize(75, 20);
-        this.xPlane.setSize(75, 20);
-        this.yPlane.setSize(75, 20);
-        this.coords.setBounds(0, 0, 150, 20);
+        this.coords.setBounds(0, 0, 215, 20);
         this.xCoord.setBounds(0, 25, 150, 20);
         this.yCoord.setBounds(0, 50, 150, 20);
         this.xDir.setBounds(0, 75, 150, 20);
@@ -116,7 +111,8 @@ public class Platform extends JFrame implements Runnable {
         this.xPlane.setForeground(Color.DARK_GRAY);
         this.yPlane.setForeground(Color.DARK_GRAY);
         this.debugPanel = new JPanel();
-        this.debugPanel.setBackground(null);
+        this.debugPanel.setLayout(null);
+        this.debugPanel.setBounds(0, 0, 215, 175);
         this.debugPanel.add(coords);
         this.debugPanel.add(xCoord);
         this.debugPanel.add(yCoord);
@@ -124,7 +120,9 @@ public class Platform extends JFrame implements Runnable {
         this.debugPanel.add(yDir);
         this.debugPanel.add(xPlane);
         this.debugPanel.add(yPlane);
-        this.add(debugPanel);
+        this.debugPanel.setDoubleBuffered(true);
+        this.debugPanel.setBackground(Color.orange);
+        this.pane.add(debugPanel, JLayeredPane.PALETTE_LAYER);
     }
 
     /**
@@ -147,12 +145,13 @@ public class Platform extends JFrame implements Runnable {
      * Draws the current image onto the screen.
      */
     public void render() {
-        BufferStrategy buffer = this.getBufferStrategy();
+        BufferStrategy buffer = this.game.getBufferStrategy();
         if (buffer == null)
-            this.createBufferStrategy(3);
+            this.game.createBufferStrategy(3);
         else {
             Graphics graphics = buffer.getDrawGraphics();
             graphics.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
+            graphics.dispose();
             buffer.show();
         }
     }
@@ -162,7 +161,6 @@ public class Platform extends JFrame implements Runnable {
         long last = System.nanoTime();
         double interval = 1000000000.0 / Settings.FRAMES_PER_SECOND;
         double delta = 0;
-        this.requestFocus();
         while (this.isActive()) {
             long now = System.nanoTime();
             delta += (now - last) / interval;
@@ -170,10 +168,11 @@ public class Platform extends JFrame implements Runnable {
             while (delta >= 1) {
                 this.screen.update(this.player.getCamera(), this.pixels);
                 this.camera.update(Platform.BASE_MAP);
+                if (Settings.DEBUG)
+                    this.updateDebug();
                 delta--;
             }
             this.render();
-            this.updateDebug();
         }
     }
 

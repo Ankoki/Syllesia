@@ -1,21 +1,23 @@
 package art.sylleth.syllesia.platform.game;
 
 import art.sylleth.syllesia.Syllesia;
-import art.sylleth.syllesia.config.Settings;
+import art.sylleth.syllesia.api.configs.Settings;
 import art.sylleth.syllesia.entities.Player;
+import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.misc.Misc;
-import art.sylleth.syllesia.platform.Location;
+import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.platform.screen.Screen;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
+/**
+ * Main class for controlling the main platform of this game.
+ */
 public class Platform extends JFrame implements Runnable {
 
     public static final int[][] BASE_MAP = {
@@ -29,7 +31,7 @@ public class Platform extends JFrame implements Runnable {
             {1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2},
             {1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 0, 4, 4, 4},
             {1, 0, 0, 0, 0, 0, 1, 4, 0, 0, 0, 0, 0, 0, 4},
-            {1, 0, 0, 0, 0, 0, 1, 4, 0, 0, 0, 0, 0, 0, 4},
+            {1, 0, 0, 0, 6, 0, 1, 4, 0, 0, 0, 0, 0, 0, 4},
             {1, 0, 0, 2, 0, 0, 1, 4, 0, 3, 3, 3, 3, 0, 4},
             {1, 0, 0, 0, 0, 0, 1, 4, 0, 3, 3, 3, 3, 0, 4},
             {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
@@ -78,8 +80,11 @@ public class Platform extends JFrame implements Runnable {
         this.setTitle("[ Syllesia ]");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setBackground(Color.LIGHT_GRAY);
-        if (Settings.DEBUG)
+        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+        if (settings.isDebug()) {
+            Syllesia.getInstance().getLogger().debug("Enabling debug screen. settings.isDebug()=" + settings.isDebug());
             this.initiateDebug();
+        }
         this.setVisible(true);
         this.start();
     }
@@ -129,7 +134,8 @@ public class Platform extends JFrame implements Runnable {
      * Updates the debug menu. If debug is disabled, nothing will happen.
      */
     private void updateDebug() {
-        if (!Settings.DEBUG)
+        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+        if (!settings.isDebug())
             return;
         Location location = this.camera.getLocation();
         this.coords.setText("Location: " + location.stringify());
@@ -159,7 +165,8 @@ public class Platform extends JFrame implements Runnable {
     @Override
     public void run() {
         long last = System.nanoTime();
-        double interval = 1000000000.0 / Settings.FRAMES_PER_SECOND;
+        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+        double interval = 1000000000.0 / settings.getFps();
         double delta = 0;
         while (this.isActive()) {
             long now = System.nanoTime();
@@ -168,12 +175,21 @@ public class Platform extends JFrame implements Runnable {
             while (delta >= 1) {
                 this.screen.update(this.player.getCamera(), this.pixels);
                 this.camera.update(Platform.BASE_MAP);
-                if (Settings.DEBUG)
-                    this.updateDebug();
+                this.updateDebug();
                 delta--;
             }
             this.render();
         }
+    }
+
+    /**
+     * Gets the player this platform is in control of.
+     *
+     * @return the main player.
+     */
+    @NotNull
+    public Player getMainPlayer() {
+        return this.player;
     }
 
     /**

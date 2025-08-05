@@ -26,6 +26,7 @@ public class Texture {
     public static final Texture STONE_WALL;
     public static final Texture LIGHT_METAL;
     public static final Texture DARK_METAL;
+    public static final Texture MOLTEN_GOLD;
 
     static {
         AIR = Texture.registerTexture("", 64, 0);
@@ -34,6 +35,7 @@ public class Texture {
         STONE_WALL = Texture.registerTexture("textures/test/stone_wall.png", 64, 3);
         LIGHT_METAL = Texture.registerTexture("textures/test/light_metal.png", 64, 4);
         DARK_METAL = Texture.registerTexture("textures/test/dark_metal.png", 64, 5);
+        MOLTEN_GOLD = Texture.registerTexture("textures/test/molten_gold.jpg", 512, 6);
     }
 
     /**

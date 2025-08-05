@@ -2,6 +2,9 @@ package art.sylleth.syllesia.handlers.event;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Class to be extended to create an event.
+ */
 public abstract class Event {
 
     /**

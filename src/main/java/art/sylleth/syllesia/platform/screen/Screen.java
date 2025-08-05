@@ -1,7 +1,7 @@
 package art.sylleth.syllesia.platform.screen;
 
 import art.sylleth.syllesia.misc.Misc;
-import art.sylleth.syllesia.platform.Location;
+import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.textures.Texture;
 

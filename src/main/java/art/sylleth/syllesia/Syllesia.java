@@ -1,10 +1,13 @@
 package art.sylleth.syllesia;
 
+import art.sylleth.syllesia.api.configs.Settings;
+import art.sylleth.syllesia.api.configs.Userdata;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
+import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.handlers.event.EventBus;
 import art.sylleth.syllesia.misc.Logger;
-import art.sylleth.syllesia.platform.Location;
+import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.game.Platform;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * The main class used to run this application.
@@ -48,21 +50,25 @@ public class Syllesia {
         } catch (ReflectiveOperationException ignored) {}
         // Set up the maps.
         Syllesia.instance.registerMap(new Map("Base Map", Platform.BASE_MAP));
-        // TODO register default events.
-        Player player = new Player("?", UUID.randomUUID(), new Camera(new Location(4.5, 4.5, 1, 0, 0, -0.4, Syllesia.instance.getBaseMap())));
-        Platform platform = new Platform(player);
+        Syllesia.instance.setupConfigurations();
+        Userdata userdata = (Userdata) Syllesia.instance.getConfiguration(ConfigurationFile.USERDATA);
+        Player player = new Player(userdata.getName(), userdata.getUuid(), new Camera(new Location(4.5, 4.5, 1, 0, 0, -0.4, Syllesia.instance.getBaseMap())));
+        Syllesia.getInstance().setPlatform(new Platform(player));
     }
 
     private final EventBus eventBus = new EventBus();
     private final String version = "0.1-alpha";
     private final Logger logger = new Logger();
     private final List<Map> maps = new ArrayList<>();
+    private final List<ConfigurationFile> configurations = new ArrayList<>();
+    private Platform platform;
 
     /**
      * Gets the event bus instance this game uses.
      *
      * @return the event bus.
      */
+    @NotNull
     public EventBus getEventBus() {
         return this.eventBus;
     }
@@ -72,6 +78,7 @@ public class Syllesia {
      *
      * @return the version.
      */
+    @NotNull
     public String getVersion() {
         return this.version;
     }
@@ -81,8 +88,40 @@ public class Syllesia {
      *
      * @return the logger.
      */
+    @NotNull
     public Logger getLogger() {
         return this.logger;
+    }
+
+    /**
+     * Gets the platform this instance is running on.
+     *
+     * @return the platform.
+     */
+    @NotNull
+    public Platform getPlatform() {
+        return this.platform;
+    }
+
+    /**
+     * Sets the platform this instance should be running on.
+     *
+     * @param platform the platform.
+     */
+    private void setPlatform(Platform platform) {
+        if (this.platform != null)
+            throw new IllegalStateException("You cannot write over a running platform.");
+        this.platform = platform;
+    }
+
+    /**
+     * Gets the base map of this game.
+     *
+     * @return the base map.
+     */
+    @NotNull
+    public Map getBaseMap() {
+        return this.maps.get(0);
     }
 
     /**
@@ -103,6 +142,7 @@ public class Syllesia {
      * Registers a map. Assigns an ID and returns the map.
      *
      * @param map the map to register.
+     * @return the id of the newly added map.
      */
     public int registerMap(Map map) {
         if (!this.maps.contains(map))
@@ -115,19 +155,41 @@ public class Syllesia {
             field.set(map, index);
             field.setAccessible(before);
         } catch (ReflectiveOperationException ex) {
-            this.getLogger().error(ex, Syllesia.class, 118);
+            this.getLogger().error(ex, Syllesia.class, 154);
         }
         return index;
     }
 
     /**
-     * Gets the base map of this game.
+     * Registers a new configuration with this file manager.
      *
-     * @return the base map.
+     * @param config the configuration to register.
+     * @throws IllegalArgumentException if the configuration id is already in use.
      */
-    @NotNull
-    public Map getBaseMap() {
-        return this.maps.get(0);
+    public void registerConfiguration(ConfigurationFile config) {
+        for (ConfigurationFile file : configurations)
+            if (file.getId().equals(config.getId()))
+                throw new IllegalArgumentException("Duplicate configuration file id: " + config.getId());
+        configurations.add(config);
+    }
+
+    /**
+     * Retrieves the configuration with the given ID.
+     *
+     * @param id the ID of the configuration file.
+     * @return the configuration
+     */
+    @Nullable
+    public ConfigurationFile getConfiguration(String id) {
+        return configurations.stream().filter(config -> config.getId().equals(id)).findFirst().orElse(null);
+    }
+
+    /**
+     * Initiates the configurations used by the base game.
+     */
+    private void setupConfigurations() {
+        this.registerConfiguration(new Settings());
+        this.registerConfiguration(new Userdata());
     }
 
 }

@@ -79,7 +79,7 @@ public class EventBus {
                 }
             }
         } catch (ReflectiveOperationException ex) {
-            Syllesia.getInstance().getLogger().error(ex, EventBus.class, 83);
+            Syllesia.getInstance().getLogger().error(ex, EventBus.class, 82);
         }
     }
 

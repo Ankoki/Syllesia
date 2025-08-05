@@ -1,8 +1,8 @@
-package art.sylleth.syllesia.platform;
+package art.sylleth.syllesia.api.world;
 
 import art.sylleth.syllesia.Syllesia;
-import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.misc.Misc;
+import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -161,6 +161,16 @@ public class Location {
     @NotNull
     public Map getMap() {
         return this.map;
+    }
+
+    /**
+     * Gets the texture at this location.
+     *
+     * @return gets the texture at this location.
+     */
+    @NotNull
+    public Texture getTexture() {
+        return Texture.fromId(this.map.getMatrix()[(int) this.xPos][(int) this.yPos]);
     }
 
     /**

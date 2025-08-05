@@ -1,6 +1,8 @@
 package art.sylleth.syllesia.misc;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.api.configs.Settings;
+import art.sylleth.syllesia.files.ConfigurationFile;
 
 /**
  * Used for sending messages to the console.
@@ -18,8 +20,10 @@ public class Logger {
      * @param message the messages to print.
      */
     public void debug(String... message) {
-        for (String s : message)
-            System.out.println(YELLOW + "∴ Syllesia [DEBUG] " + s); // Different colour for debug maybe?
+        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+        if (settings == null || settings.isDebug())
+            for (String s : message)
+                System.out.println(YELLOW + "∴ Syllesia [DEBUG] " + s); // Different colour for debug maybe?
     }
 
     /**

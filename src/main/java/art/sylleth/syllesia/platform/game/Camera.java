@@ -1,13 +1,21 @@
 package art.sylleth.syllesia.platform.game;
 
+import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.api.events.PlayerInteractEvent;
 import art.sylleth.syllesia.api.world.Map;
-import art.sylleth.syllesia.platform.Location;
+import art.sylleth.syllesia.entities.Player;
+import art.sylleth.syllesia.api.world.Location;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+/**
+ * Class which is used to control the players view, handling the majority of the raycasting.
+ * TODO entity and model rendering.
+ */
 public class Camera implements KeyListener, MouseListener {
 
     private static final double MOVE_SPEED = 0.1;
@@ -68,12 +76,29 @@ public class Camera implements KeyListener, MouseListener {
     }
 
     /**
+     * Moves this camera to a given location.
+     *
+     * @param location the updated location.
+     */
+    public void moveTo(Location location) {
+        this.xPos = location.getX();
+        this.yPos = location.getY();
+        this.xDir = location.getXDir();
+        this.yDir = location.getYDir();
+        this.xPlane = location.getXPlane();
+        this.yPlane = location.getYPlane();
+        this.left = false;
+        this.right = false;
+        this.forward = false;
+        this.back = false;
+    }
+
+    /**
      * Updates the world as the player sees it.
      *
      * @param world the world.
      */
     public void update(int[][] world) {
-
         if (this.forward) {
             int x = (int) (this.xPos + this.xDir * MOVE_SPEED);
             if (world[x][(int) this.yPos] == 0) // 0 is the id of air in the world.
@@ -82,7 +107,6 @@ public class Camera implements KeyListener, MouseListener {
             if (world[(int) this.xPos][y] == 0)
                 this.yPos += this.yDir * MOVE_SPEED;
         }
-
         if (this.back) {
             int x = (int) (this.xPos - this.xDir * MOVE_SPEED);
             if (world[x][(int) this.yPos] == 0)
@@ -91,7 +115,6 @@ public class Camera implements KeyListener, MouseListener {
             if (world[(int) this.xPos][y] == 0)
                 this.yPos -= this.yDir * MOVE_SPEED;
         }
-
         if (this.left) {
             double xDirCopy = this.xDir;
             this.xDir = this.xDir * Math.cos(ROTATE_SPEED) - this.yDir * Math.sin(ROTATE_SPEED);
@@ -103,7 +126,6 @@ public class Camera implements KeyListener, MouseListener {
             this.xPlane = this.xPlane * Math.cos(ROTATE_SPEED) - this.yPlane * Math.sin(ROTATE_SPEED);
             this.yPlane = xPlaneCopy * Math.sin(ROTATE_SPEED) + this.yPlane * Math.cos(ROTATE_SPEED);
         }
-
         if (this.right) {
             double xDirCopy = this.xDir;
             this.xDir = this.xDir * Math.cos(-ROTATE_SPEED) - this.yDir * Math.sin(-ROTATE_SPEED);
@@ -115,7 +137,6 @@ public class Camera implements KeyListener, MouseListener {
             this.xPlane = this.xPlane * Math.cos(-ROTATE_SPEED) - this.yPlane * Math.sin(-ROTATE_SPEED);
             this.yPlane = xPlaneCopy * Math.sin(-ROTATE_SPEED) + this.yPlane * Math.cos(-ROTATE_SPEED);
         }
-
     }
 
     /**
@@ -125,19 +146,14 @@ public class Camera implements KeyListener, MouseListener {
      */
     public Result getTarget() {
         Location location = this.getLocation();
-
         double rayDirX = location.getXDir();
         double rayDirY = location.getYDir();
-
         int mapX = (int) location.getX();
         int mapY = (int) location.getY();
-
         double deltaDistX = Math.abs(1 / rayDirX);
         double deltaDistY = Math.abs(1 / rayDirY);
-
         int stepX, stepY;
         double sideDistX, sideDistY;
-
         if (rayDirX < 0) {
             stepX = -1;
             sideDistX = (location.getX() - mapX) * deltaDistX;
@@ -152,7 +168,6 @@ public class Camera implements KeyListener, MouseListener {
             stepY = 1;
             sideDistY = (mapY + 1.0 - location.getY()) * deltaDistY;
         }
-
         int[][] map = location.getMap().getMatrix();
         int side;
         while (true) {
@@ -165,25 +180,55 @@ public class Camera implements KeyListener, MouseListener {
                 mapY += stepY;
                 side = 1;
             }
-
             if (mapX < 0 || mapY < 0 || mapX >= map.length || mapY >= map[0].length)
                 return null;
-
             if (map[mapX][mapY] != 0) {
                 double perpWallDist;
-                if (side == 0) {
+                if (side == 0)
                     perpWallDist = (mapX - location.getX() + (1 - stepX) / 2.0) / rayDirX;
-                } else {
+                else
                     perpWallDist = (mapY - location.getY() + (1 - stepY) / 2.0) / rayDirY;
-                }
                 return new Result(mapX, mapY, location.getMap(), perpWallDist);
             }
         }
     }
 
     @Override
-    public void mouseClicked(MouseEvent e) {
-        // TODO
+    public void mouseClicked(MouseEvent event) {
+        switch (event.getButton()) {
+            case MouseEvent.BUTTON1:
+                Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
+                Location target = player.getTargetLocation(3);
+                if (target == null)
+                    return;
+                PlayerInteractEvent playerInteractEvent = new PlayerInteractEvent(player, player.getTargetLocation(3), PlayerInteractEvent.ClickType.LEFT);
+                Syllesia.getInstance().getEventBus().callEvent(playerInteractEvent);
+                if (playerInteractEvent.isPrevented())
+                    return;
+                else {
+                    Syllesia.getInstance().getLogger().debug("MouseEvent.BUTTON1[LEFT] " + playerInteractEvent.getName() + ", Location: " + playerInteractEvent.getLocation());
+                    if (target.getTexture().getId() == 6) {
+                        player.addCoins(1);
+                        player.sendTitle("You have received a coin.");
+                        Syllesia.getInstance().getLogger().debug("Player[" + player.getName() + "] has received a coin[" + player.getCoins() + "].");
+                    }
+                }
+                break;
+            case MouseEvent.BUTTON2:
+                // Middle Click, no needed functionality at this time.
+                break;
+            case MouseEvent.BUTTON3:
+                Player mainPlayer = Syllesia.getInstance().getPlatform().getMainPlayer();
+                PlayerInteractEvent newEvent = new PlayerInteractEvent(mainPlayer, mainPlayer.getTargetLocation(3), PlayerInteractEvent.ClickType.RIGHT);
+                Syllesia.getInstance().getEventBus().callEvent(newEvent);
+                if (newEvent.isPrevented())
+                    return;
+                else {
+                    Syllesia.getInstance().getLogger().debug("MouseEvent.BUTTON3[RIGHT] " + newEvent.getName() + ", Location: " + newEvent.getLocation());
+                    // TODO right click functionality.
+                }
+                break;
+        }
     }
 
     @Override
@@ -234,6 +279,7 @@ public class Camera implements KeyListener, MouseListener {
      *
      * @return the location.
      */
+    @NotNull
     public Location getLocation() {
         return new Location(this.xPos, this.yPos, this.xDir, this.yDir, this.xPlane, this.yPlane);
     }

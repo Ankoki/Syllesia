@@ -1,7 +1,7 @@
-package art.sylleth.syllesia.config;
+package art.sylleth.syllesia.api.configs;
 
 /**
- * TODO finsih when prototype up.
+ * TODO finish when lang file has been completed.
  */
 @SuppressWarnings("SpellCheckingInspection")
 public enum Placeholder {

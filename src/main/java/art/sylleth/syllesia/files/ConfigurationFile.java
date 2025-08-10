@@ -1,6 +1,8 @@
 package art.sylleth.syllesia.files;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.files.json.JSON;
+import art.sylleth.syllesia.files.json.MalformedJsonException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,7 +47,7 @@ public abstract class ConfigurationFile {
      */
     public enum FileType {
         KEY_VAL,
-        JSON; // TODO implement JSON through the Roku library made by me, found at https://www.github.com/Ankoki/Roku.
+        JSON;
     }
 
     // IDs used for internal file managers.
@@ -70,7 +72,7 @@ public abstract class ConfigurationFile {
                 root.createNewFile();
                 this.applyDefaults();
             } catch (IOException ex) {
-                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 73);
+                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 74);
             }
         }
         if (read)
@@ -102,6 +104,13 @@ public abstract class ConfigurationFile {
     public abstract void processData(Map<String, Object> data);
 
     /**
+     * Method to save the configurations data to the file.
+     * Will not be called by this class, should be implemented by the users.
+     * Should call the {@link ConfigurationFile#writeFile(Map)} method for ease of use.
+     */
+    public abstract void writeData();
+
+    /**
      * Gets the file type of this configuration file.
      *
      * @return the type of file this is.`
@@ -114,28 +123,34 @@ public abstract class ConfigurationFile {
     /**
      * Method to copy a default configuration to the file.
      * Will be used when the file has not been found, and has been newly created.
-     * Should call the {@link ConfigurationFile#writeFile(String)} method for ease of use.
+     * Should call the {@link ConfigurationFile#writeFile(Map)} method for ease of use.
      */
-    public void applyDefaults() {}
+    public abstract void applyDefaults();
 
     /**
-     * Writes the given string to a file. If multiple lines, should be joined by \n.
-     * TODO have this take a class which contains the correct format for each type to be saved with.
+     * Writes the given map to the file, using either KEY_VAL or JSON storage.
      *
-     * @param string the string to write.
+     * @param map the string to write.
      */
-    public void writeFile(String string) {
+    public void writeFile(Map<String, Object> map) {
+        String fin = null;
         switch (this.type) {
             case KEY_VAL:
-                try (FileWriter writer = new FileWriter(this.root)) {
-                    writer.write(string);
-                } catch (IOException ex) {
-                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 133);
-                }
+                StringBuilder builder = new StringBuilder();
+                for (Map.Entry<String, Object> entry : map.entrySet())
+                    builder.append(entry.getKey()).append("=").append(String.valueOf(entry.getValue())).append("\n");
+                builder.setLength(builder.length() - 1);
+                fin = builder.toString();
                 break;
             case JSON:
-                // TODO
+                fin = JSON.toString(map, true, 4);
                 break;
+        }
+        try (FileWriter writer = new FileWriter(this.root)) {
+            Syllesia.getInstance().getLogger().debug("fin[" + fin + "]");
+            writer.write(fin);
+        } catch (IOException ex) {
+            Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 144);
         }
     }
 
@@ -155,11 +170,16 @@ public abstract class ConfigurationFile {
                     }
                     this.processData(pairs);
                 } catch (IOException ex) {
-                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 158);
+                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 165);
                 }
                 break;
             case JSON:
-                // TODO
+                try {
+                    JSON json = new JSON(this.root);
+                    this.processData(json);
+                } catch (IOException | MalformedJsonException ex) {
+                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 173);
+                }
                 break;
         }
     }

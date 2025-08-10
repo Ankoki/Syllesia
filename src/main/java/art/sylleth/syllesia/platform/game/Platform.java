@@ -11,6 +11,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
@@ -20,26 +22,9 @@ import java.awt.image.DataBufferInt;
  */
 public class Platform extends JFrame implements Runnable {
 
-    public static final int[][] BASE_MAP = {
-            {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2},
-            {1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2},
-            {1, 0, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 2},
-            {1, 0, 3, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0, 0, 2},
-            {1, 0, 3, 0, 0, 0, 3, 0, 2, 2, 2, 0, 2, 2, 2},
-            {1, 0, 3, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0, 0, 2},
-            {1, 0, 3, 3, 0, 3, 3, 0, 2, 0, 0, 0, 0, 0, 2},
-            {1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2},
-            {1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 0, 4, 4, 4},
-            {1, 0, 0, 0, 0, 0, 1, 4, 0, 0, 0, 0, 0, 0, 4},
-            {1, 0, 0, 0, 6, 0, 1, 4, 0, 0, 0, 0, 0, 0, 4},
-            {1, 0, 0, 2, 0, 0, 1, 4, 0, 3, 3, 3, 3, 0, 4},
-            {1, 0, 0, 0, 0, 0, 1, 4, 0, 3, 3, 3, 3, 0, 4},
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-            {1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4}
-    };
-
     private static final int SCREEN_WIDTH = 720;
     private static final int SCREEN_HEIGHT = 520;
+    private static final int OVERLAY_INDEX = 99;
 
     private final Thread thread;
     private final BufferedImage image;
@@ -50,6 +35,13 @@ public class Platform extends JFrame implements Runnable {
     private final Screen screen;
     private final Canvas game = new Canvas();
     private final JLayeredPane pane = this.getLayeredPane();
+
+    // Overlay components.
+    private final JLabel location = new JLabel();
+    private final JLabel coins = new JLabel();
+    private final JPanel map = new JPanel();
+
+    // Debug panel components.
     private JPanel debugPanel;
     private JLabel coords,
             xCoord,
@@ -68,7 +60,7 @@ public class Platform extends JFrame implements Runnable {
         this.pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         this.player = player;
         this.camera = this.player.getCamera();
-        this.screen = new Screen(BASE_MAP, SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.screen = new Screen(this.player.getLocation().getMap().getMatrix(), SCREEN_WIDTH, SCREEN_HEIGHT);
         this.game.setBounds(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         this.game.addKeyListener(this.camera);
         this.game.addMouseListener(this.camera);
@@ -78,13 +70,42 @@ public class Platform extends JFrame implements Runnable {
         this.setResizable(false);
         this.setLocationRelativeTo(null);
         this.setTitle("[ Syllesia ]");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        this.addWindowListener(new WindowListener() {
+
+            // TODO this is not called when right clicking the taskbar and exiting the application.
+            @Override
+            public void windowClosing(WindowEvent event) {
+                Syllesia.getInstance().getLogger().debug("WindowClosingEvent fired. Saving Configurations.");
+                for (String id : new String[]{ConfigurationFile.USERDATA, ConfigurationFile.SETTINGS/*, ConfigurationFile.LANG*/}) { // TODO lang file.
+                    Syllesia.getInstance().getLogger().debug("Saving configuration file " + id + ".");
+                    ConfigurationFile file = Syllesia.getInstance().getConfiguration(id);
+                    file.writeData();
+                    Syllesia.getInstance().getLogger().debug("Configuration file " + id + " saved.");
+                }
+                Platform.this.stop();
+                System.exit(0);
+            }
+
+            // Unused methods for this window listener.
+            @Override
+            public void windowOpened(WindowEvent event) {}
+            @Override
+            public void windowClosed(WindowEvent event) {}
+            @Override
+            public void windowIconified(WindowEvent event) {}
+            @Override
+            public void windowDeiconified(WindowEvent event) {}
+            @Override
+            public void windowActivated(WindowEvent event) {}
+            @Override
+            public void windowDeactivated(WindowEvent event) {}
+        });
         this.setBackground(Color.LIGHT_GRAY);
+        this.setupOverlay();
         Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
-        if (settings.isDebug()) {
-            Syllesia.getInstance().getLogger().debug("Enabling debug screen. settings.isDebug()=" + settings.isDebug());
+        if (settings.isDebug())
             this.initiateDebug();
-        }
         this.setVisible(true);
         this.start();
     }
@@ -93,6 +114,7 @@ public class Platform extends JFrame implements Runnable {
      * Initiates the debug method. Allows us to see the game options easier.
      */
     private void initiateDebug() {
+        Syllesia.getInstance().getLogger().debug("Enabling debug screen.");
         Location location = this.camera.getLocation();
         this.coords = new JLabel("Location: " + location.stringify());
         this.xCoord = new JLabel("X: " + Misc.toNPoints(location.getX(), 3));
@@ -128,6 +150,49 @@ public class Platform extends JFrame implements Runnable {
         this.debugPanel.setDoubleBuffered(true);
         this.debugPanel.setBackground(Color.orange);
         this.pane.add(debugPanel, JLayeredPane.PALETTE_LAYER);
+    }
+
+    /**
+     * Sets up the games overlay.
+     */
+    private void setupOverlay() {
+        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+        if (!settings.isDebug()) {
+            // Location, if debug is enabled then there will be a more in depth location shown.
+            this.location.setBounds(0, 0, 215, 50);
+            this.location.setText(this.player.getLocation().stringify());
+            this.pane.add(this.location, JLayeredPane.PALETTE_LAYER);
+        }
+        // Coin Counter
+        this.coins.setBounds(SCREEN_WIDTH - 100, SCREEN_HEIGHT - 75, 100, 50);
+        ImageIcon coinIcon = new ImageIcon(Misc.getResourceImage("textures/icons/coin.png"));
+        this.coins.setIcon(coinIcon);
+        this.coins.setIconTextGap(10);
+        this.coins.setText(this.player.getCoins() + "");
+        this.coins.setOpaque(false);
+        this.pane.add(this.coins, JLayeredPane.PALETTE_LAYER);
+        // Map TODO
+        GridLayout gridLayout = new GridLayout(5, 5);
+        this.map.setLayout(gridLayout);
+        Location location = this.player.getLocation();
+        int x = (int) location.getX();
+        int y = (int) location.getY();
+        /*
+        0 0 0 0 0
+        0 0 0 0 0
+        0 0 X 0 0
+        0 0 0 0 0
+        0 0 0 0 0
+         */
+        // Quest Toast TODO
+    }
+
+    /**
+     * Updates the overlay components.
+     */
+    private void updateOverlay() {
+        this.location.setText(this.player.getLocation().stringify());
+        this.coins.setText(this.player.getCoins() + "");
     }
 
     /**
@@ -174,7 +239,8 @@ public class Platform extends JFrame implements Runnable {
             last = now;
             while (delta >= 1) {
                 this.screen.update(this.player.getCamera(), this.pixels);
-                this.camera.update(Platform.BASE_MAP);
+                this.camera.update(player.getLocation().getMap().getMatrix());
+                this.updateOverlay();
                 this.updateDebug();
                 delta--;
             }

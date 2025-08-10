@@ -4,6 +4,7 @@ import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -24,7 +25,11 @@ public class Settings extends ConfigurationFile {
 
     @Override
     public void applyDefaults() {
-        super.writeFile("frames-per-second=45\ndebug=true\nlang=en_GB");
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put("frames-per-second", "45");
+        defaults.put("debug", "true");
+        defaults.put("lang", "en_GB");
+        this.writeFile(defaults);
     }
 
     @Override
@@ -32,11 +37,21 @@ public class Settings extends ConfigurationFile {
         this.validateMap(data);
         this.fps = Integer.parseInt((String) data.get("frames-per-second"));
         this.debug = Boolean.parseBoolean((String) data.get("debug"));
+        this.lang = (String) data.get("lang");
         if (this.debug)
             Syllesia.getInstance().getLogger().debug("Settings#processData",
                     "data.get(\"frames-per-second\")=" + data.get("frames-per-second"),
                     "data.get(\"debug\")=" + data.get("debug"),
                     "data.get(\"lang\")=" + data.get("lang"));
+    }
+
+    @Override
+    public void writeData() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("frames-per-second", this.fps);
+        map.put("debug", this.debug);
+        map.put("lang", this.lang);
+        this.writeFile(map);
     }
 
     @Override

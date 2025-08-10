@@ -1,15 +1,10 @@
 package art.sylleth.syllesia.platform.textures;
 
-import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.misc.Misc;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 /**
  * Class to store texture information.
@@ -45,7 +40,7 @@ public class Texture {
      *
      * @param file the file directory.
      * @param size the size.
-     * @param id the id of this texture.
+     * @param id   the id of this texture.
      * @return the created texture.
      * @throws IllegalArgumentException if the texture id is greater than the allowed size, or the id is in use.
      */
@@ -84,7 +79,7 @@ public class Texture {
      *
      * @param file the file directory.
      * @param size the size.
-     * @param id the id of this texture.
+     * @param id   the id of this texture.
      */
     protected Texture(String file, int size, int id) {
         this.file = file;
@@ -99,18 +94,10 @@ public class Texture {
      * Assigns each pixel in the {@link Texture#pixels} field to the correct RGB value.
      */
     private void assignPixels() {
-        try {
-            ClassLoader loader = getClass().getClassLoader();
-            URL resource = loader.getResource(file);
-            if (resource == null)
-                throw new IllegalArgumentException("Resource not found: " + file);
-            BufferedImage image = ImageIO.read(new File(resource.toURI()));
-            int width = image.getWidth();
-            int height = image.getHeight();
-            image.getRGB(0, 0, width, height, pixels, 0, width);
-        } catch (IOException | URISyntaxException ex) {
-            Syllesia.getInstance().getLogger().error(ex, Texture.class, 110);
-        }
+        BufferedImage image = Misc.getResourceImage(file);
+        int width = image.getWidth();
+        int height = image.getHeight();
+        image.getRGB(0, 0, width, height, pixels, 0, width);
     }
 
     /**

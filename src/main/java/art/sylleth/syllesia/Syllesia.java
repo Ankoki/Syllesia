@@ -2,9 +2,11 @@ package art.sylleth.syllesia;
 
 import art.sylleth.syllesia.api.configs.Settings;
 import art.sylleth.syllesia.api.configs.Userdata;
+import art.sylleth.syllesia.api.quest.Quest;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.files.ConfigurationFile;
+import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.handlers.event.EventBus;
 import art.sylleth.syllesia.misc.Logger;
 import art.sylleth.syllesia.api.world.Location;
@@ -48,11 +50,12 @@ public class Syllesia {
         try {
             Class.forName("art.sylleth.syllesia.platform.textures.Texture");
         } catch (ReflectiveOperationException ignored) {}
-        // Set up the maps.
-        Syllesia.instance.registerMap(new Map("Base Map", Platform.BASE_MAP));
+        Syllesia.instance.setupJsonSerializable();
+        Syllesia.instance.setupMaps();
+        Syllesia.instance.declareQuests();
         Syllesia.instance.setupConfigurations();
         Userdata userdata = (Userdata) Syllesia.instance.getConfiguration(ConfigurationFile.USERDATA);
-        Player player = new Player(userdata.getName(), userdata.getUuid(), new Camera(new Location(4.5, 4.5, 1, 0, 0, -0.4, Syllesia.instance.getBaseMap())));
+        Player player = new Player(userdata.getName(), userdata.getUuid(), new Camera(userdata.getLastLocation()));
         Syllesia.getInstance().setPlatform(new Platform(player));
     }
 
@@ -61,6 +64,7 @@ public class Syllesia {
     private final Logger logger = new Logger();
     private final List<Map> maps = new ArrayList<>();
     private final List<ConfigurationFile> configurations = new ArrayList<>();
+    private final List<Quest> quests = new ArrayList<>();
     private Platform platform;
 
     /**
@@ -139,6 +143,20 @@ public class Syllesia {
     }
 
     /**
+     * Gets a map with the given id.
+     *
+     * @param id the id of the map to retrieve.
+     * @return the map if found, else null.
+     */
+    @Nullable
+    public Map getMap(int id) {
+        for (Map map : maps)
+            if (map.getId() == id)
+                return map;
+        return null;
+    }
+
+    /**
      * Registers a map. Assigns an ID and returns the map.
      *
      * @param map the map to register.
@@ -185,11 +203,33 @@ public class Syllesia {
     }
 
     /**
+     * Registers any serializable classes with JSONSerializable.
+     */
+    private void setupJsonSerializable() {
+        JSONSerializable.register(Location.class);
+    }
+
+    /**
+     * Registers the maps used by the base game.
+     */
+    private void setupMaps() {
+        Syllesia.instance.registerMap(new Map("Ruins", Map.BASE_MAP));
+    }
+
+    /**
      * Initiates the configurations used by the base game.
      */
     private void setupConfigurations() {
         this.registerConfiguration(new Settings());
         this.registerConfiguration(new Userdata());
+        // TODO lang files.
+    }
+
+    /**
+     * Declares all the quests in the base Syllesia game.
+     */
+    private void declareQuests() {
+
     }
 
 }

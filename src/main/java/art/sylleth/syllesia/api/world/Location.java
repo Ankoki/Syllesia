@@ -1,14 +1,51 @@
 package art.sylleth.syllesia.api.world;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
 
 /**
  * Class to easier store locations.
  */
-public class Location {
+public class Location extends JSONSerializable {
+
+    /**
+     * Creates a location from map data.
+     * Required by {@link JSONSerializable}.
+     *
+     * @param data the data to parse.
+     * @return the location, or if invalid, null.
+     */
+    @NotNull
+    public static Location deserialize(java.util.Map<String, Object> data) {
+        for (String key : new String[]{"x-pos", "y-pos", "map-id"})
+            if (!data.containsKey(key))
+                throw new IllegalArgumentException("Required key '" + key + "' not found.");
+        double xPos = (double) data.get("x-pos");
+        double yPos = (double) data.get("y-pos");
+        int mapId = (int) data.get("map-id");
+        Map map = Syllesia.getInstance().getMap(mapId);
+        if (map == null)
+            map = Syllesia.getInstance().getBaseMap(); // Default to regular world.
+        double xDir = 0;
+        double yDir = 0;
+        double xPlane = 0;
+        double yPlane = 0;
+        if (data.containsKey("x-dir"))
+            xDir = (double) data.get("x-dir");
+        if (data.containsKey("y-dir"))
+            yDir = (double) data.get("y-dir");
+        if (data.containsKey("x-plane"))
+            xPlane = (double) data.get("x-plane");
+        if (data.containsKey("y-plane"))
+            yPlane = (double) data.get("y-plane");
+        return new Location(xPos, yPos, xDir, yDir, xPlane, yPlane, map);
+    }
 
     private final double xPos,
             yPos,
@@ -186,6 +223,19 @@ public class Location {
     @Override
     public String toString() {
         return "Location[x=" + this.xPos + ",\ny=" + this.yPos + ",\nxDir=" + this.xDir + ",\nyDir=" + this.yDir + ",\nxPlane=" + this.xPlane + ",\nyPlane=" + this.yPlane + ",\nmap=" + this.map.getName() + "]";
+    }
+
+    @Override
+    public java.util.Map<String, Object> serialize() {
+        java.util.Map<String, Object> map = new HashMap<>();
+        map.put("x-pos", this.xPos);
+        map.put("y-pos", this.yPos);
+        map.put("x-dir", this.xDir);
+        map.put("y-dir", this.yDir);
+        map.put("x-plane", this.xPlane);
+        map.put("y-plane", this.yPlane);
+        map.put("map-id", this.map.getId());
+        return map;
     }
 
 }

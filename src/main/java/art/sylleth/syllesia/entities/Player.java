@@ -2,13 +2,17 @@ package art.sylleth.syllesia.entities;
 
 import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.api.configs.Userdata;
+import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.api.world.Location;
+import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -19,6 +23,7 @@ public class Player {
     private final String name;
     private final UUID uuid;
     private final Camera camera;
+    private final java.util.Map<String, Object> metadata = new HashMap<>();
     private final Userdata userdata = (Userdata) Syllesia.getInstance().getConfiguration(ConfigurationFile.USERDATA);
 
     /**
@@ -143,6 +148,60 @@ public class Player {
      */
     public void setCoins(double amount) {
         this.userdata.setCoins(Math.max(0, amount));
+    }
+
+    /**
+     * Sets a metadata key of this player. Allows for objects to be stored on a player.
+     * If the persistent parameter is true, the value parameter must be of a {@link art.sylleth.syllesia.files.json.JSONSerializable} type,
+     * or be one of the following:<br>
+     * - List<br>
+     * - Map<br>
+     * - String<br>
+     * - boolean<br>
+     * - int<br>
+     * - long<br>
+     * - double<br>
+     * - float<br>
+     * These will be saved in the players userdata. If you wish to save an array, please pass it as a list.
+     *
+     * @param key the key of this data.
+     * @param value the value.
+     * @param persistent true if this should be persistent over game restart.
+     */
+    public void setMetadata(String key, Object value, boolean persistent) {
+        if (!persistent)
+            this.metadata.put(key, value);
+        else {
+            if (!(value instanceof Number ||
+                value instanceof String ||
+                value instanceof Boolean ||
+                value instanceof Map ||
+                value instanceof List<?> ||
+                value instanceof JSONSerializable))
+                throw new IllegalArgumentException("Invalid metadata value for persistent storage.");
+            // TODO userdata.writeMetadata(key, value);
+        }
+    }
+
+    /**
+     * Checks if this player has a metadata key matching the given key.
+     *
+     * @param key the key to check for.
+     * @return true if the metadata contains the key, else false.
+     */
+    public boolean hasMetadata(String key) {
+        return this.metadata.containsKey(key) /* || userdata.hasMetadata(key)*/;
+    }
+
+    /**
+     * Removes the given metadata key from storage.
+     * If the key is also in persistent metadata, that will also be erased.
+     *
+     * @param key the key to erase.
+     */
+    public void removeMetadata(String key) {
+        this.metadata.remove(key);
+        // TODO userdata.removeMetadata(key);
     }
 
     /**

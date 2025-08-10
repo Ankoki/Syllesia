@@ -13,17 +13,21 @@ import java.util.Map;
 public class Lang extends ConfigurationFile {
 
     private final Map<String, String> lang = new HashMap<>();
+    private final String extension;
 
     /**
      * Creates a new language file.
      */
     public Lang() {
         super(FileType.KEY_VAL, true);
+        this.extension = ((Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS)).getLang();
     }
 
     @Override
     public void applyDefaults() {
-        this.writeFile("title=Syllesia");
+        if (this.extension.equals("en_GB")) {
+            this.writeFile(Map.of("title", "Syllesia"));
+        } // TODO other language defaults.
     }
 
     @Override
@@ -35,13 +39,18 @@ public class Lang extends ConfigurationFile {
     @Override
     @NotNull
     public String getPath() {
-        return "lang_" + ((Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS)).getLang();
+        return "lang_" + extension;
     }
 
     @Override
     public void processData(Map<String, Object> data) {
         this.lang.clear();
         this.lang.putAll((Map<String, String>) data.get("lang"));
+    }
+
+    @Override
+    public void writeData() {
+
     }
 
 }

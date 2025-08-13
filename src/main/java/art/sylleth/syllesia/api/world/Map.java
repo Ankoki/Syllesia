@@ -1,11 +1,16 @@
 package art.sylleth.syllesia.api.world;
 
+import art.sylleth.syllesia.entities.Entity;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Class used to navigate maps.
  */
 public class Map {
 
-    public static final int[][] BASE_MAP = {
+    public static final int[][] RUINS = {
             {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2},
             {1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2},
             {1, 0, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 2},
@@ -26,6 +31,7 @@ public class Map {
     private final String name;
     private final int id = 0; // Will be set when registered.
     private final int[][] matrix;
+    private final List<Entity> entities = new ArrayList<>(); // Entities present in this world.
 
     /**
      * Creates a new map with the given properties.
@@ -64,6 +70,24 @@ public class Map {
      */
     public int[][] getMatrix() {
         return this.matrix;
+    }
+
+    /**
+     * Gets the entities present in this world.
+     *
+     * @return the entities.
+     */
+    public List<Entity> getEntities() {
+        return this.entities;
+    }
+
+    /**
+     * Adds an entity to this map.
+     *
+     * @param entity the entity to add.
+     */
+    public void addEntity(Entity entity) {
+        this.entities.add(entity);
     }
 
 }

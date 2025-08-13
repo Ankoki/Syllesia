@@ -12,6 +12,14 @@ import java.util.Map;
  */
 public class Settings extends ConfigurationFile {
 
+    private static final Map<String, Object> DEFAULTS = new HashMap<>();
+
+    static {
+        DEFAULTS.put("frames-per-second", "45");
+        DEFAULTS.put("debug", "true");
+        DEFAULTS.put("lang", "en_GB");
+    }
+
     private int fps;
     private boolean debug;
     private String lang;
@@ -24,12 +32,9 @@ public class Settings extends ConfigurationFile {
     }
 
     @Override
-    public void applyDefaults() {
-        Map<String, Object> defaults = new HashMap<>();
-        defaults.put("frames-per-second", "45");
-        defaults.put("debug", "true");
-        defaults.put("lang", "en_GB");
-        this.writeFile(defaults);
+    @NotNull
+    public Map<String, Object> getDefaults() {
+        return Settings.DEFAULTS;
     }
 
     @Override
@@ -38,11 +43,6 @@ public class Settings extends ConfigurationFile {
         this.fps = Integer.parseInt((String) data.get("frames-per-second"));
         this.debug = Boolean.parseBoolean((String) data.get("debug"));
         this.lang = (String) data.get("lang");
-        if (this.debug)
-            Syllesia.getInstance().getLogger().debug("Settings#processData",
-                    "data.get(\"frames-per-second\")=" + data.get("frames-per-second"),
-                    "data.get(\"debug\")=" + data.get("debug"),
-                    "data.get(\"lang\")=" + data.get("lang"));
     }
 
     @Override
@@ -64,17 +64,6 @@ public class Settings extends ConfigurationFile {
     @NotNull
     public String getPath() {
         return "settings.txt";
-    }
-
-    /**
-     * Validates all necessary keys are present.
-     *
-     * @param data the map to check against.
-     */
-    public void validateMap(Map<String, Object> data) {
-        for (String key : new String[]{"frames-per-second", "debug", "lang"})
-            if (!data.containsKey(key))
-                throw new IllegalArgumentException("The '" + key + "' is missing.");
     }
 
     /**

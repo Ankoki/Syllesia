@@ -5,7 +5,9 @@ import art.sylleth.syllesia.api.events.PlayerInteractEvent;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.api.world.Location;
+import art.sylleth.syllesia.misc.Timespan;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -14,7 +16,7 @@ import java.awt.event.MouseListener;
 
 /**
  * Class which is used to control the players view, handling the majority of the raycasting.
- * TODO entity and model rendering.
+ * TODO fix entity and model rendering.
  */
 public class Camera implements KeyListener, MouseListener {
 
@@ -30,7 +32,8 @@ public class Camera implements KeyListener, MouseListener {
     private boolean left,
             right,
             forward,
-            back;
+            back,
+            shift;
 
     /**
      * Creates a new camera at the given location.
@@ -53,6 +56,12 @@ public class Camera implements KeyListener, MouseListener {
 
     @Override
     public void keyPressed(KeyEvent event) {
+        Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
+        if (player.isTyping() && event.getKeyCode() != KeyEvent.VK_ENTER) {
+            player.appendChat(String.valueOf(event.getKeyChar()));
+            return;
+        }
+        // Movement
         if (event.getKeyCode() == KeyEvent.VK_LEFT || event.getKeyCode() == KeyEvent.VK_A)
             this.left = true;
         if (event.getKeyCode() == KeyEvent.VK_RIGHT || event.getKeyCode() == KeyEvent.VK_D)
@@ -61,6 +70,46 @@ public class Camera implements KeyListener, MouseListener {
             this.forward = true;
         if (event.getKeyCode() == KeyEvent.VK_DOWN || event.getKeyCode() == KeyEvent.VK_S)
             this.back = true;
+        if (event.getKeyCode() == KeyEvent.VK_SHIFT)
+            this.shift = true;
+        // Command Handler
+        if (event.getKeyCode() == KeyEvent.VK_ENTER) {
+            if (player.isTyping()) {
+                String chat = player.getChat();
+                if (chat.isBlank())
+                    return;
+                String[] split = chat.split(" ");
+                String command = split[0];
+                if (split.length == 1) {
+                    if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, new String[0]))
+                        player.sendTitle("Invalid command [" + command + "]", Timespan.of("2 seconds"));
+                    else
+                        Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + "]");
+                } else {
+                    String[] args = new String[split.length - 1];
+                    int i = 0;
+                    boolean isFirst = true;
+                    for (String string : split) {
+                        if (isFirst) {
+                            isFirst = false;
+                            continue;
+                        }
+                        args[i] = string;
+                        i++;
+                    }
+                    if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, args))
+                        player.sendTitle("Invalid command [" + command + ", " + String.join(", ", args) + "]", Timespan.of("2 seconds"));
+                    else
+                        Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + String.join(", ", args) + "]");
+                }
+                player.clearChat();
+                player.setTyping(false);
+            }
+        }
+        if (event.getKeyCode() == KeyEvent.VK_C) {
+            Syllesia.getInstance().getPlatform().getMainPlayer().addCoins(50);
+            Syllesia.getInstance().getLogger().debug("50 coins added to player.");
+        }
     }
 
     @Override
@@ -73,6 +122,8 @@ public class Camera implements KeyListener, MouseListener {
             this.forward = false;
         if (event.getKeyCode() == KeyEvent.VK_DOWN || event.getKeyCode() == KeyEvent.VK_S)
             this.back = false;
+        if (event.getKeyCode() == KeyEvent.VK_SHIFT)
+            this.shift = false;
     }
 
     /**
@@ -144,6 +195,7 @@ public class Camera implements KeyListener, MouseListener {
      *
      * @return the target.
      */
+    @Nullable
     public Result getTarget() {
         Location location = this.getLocation();
         double rayDirX = location.getXDir();
@@ -195,13 +247,15 @@ public class Camera implements KeyListener, MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent event) {
+        PlayerInteractEvent.ClickType type;
         switch (event.getButton()) {
             case MouseEvent.BUTTON1:
                 Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
                 Location target = player.getTargetLocation(3);
                 if (target == null)
                     return;
-                PlayerInteractEvent playerInteractEvent = new PlayerInteractEvent(player, player.getTargetLocation(3), PlayerInteractEvent.ClickType.LEFT);
+                type = shift ? PlayerInteractEvent.ClickType.SHIFT_LEFT : PlayerInteractEvent.ClickType.LEFT;
+                PlayerInteractEvent playerInteractEvent = new PlayerInteractEvent(player, player.getTargetLocation(3), type);
                 Syllesia.getInstance().getEventBus().callEvent(playerInteractEvent);
                 if (playerInteractEvent.isPrevented())
                     return;
@@ -209,7 +263,7 @@ public class Camera implements KeyListener, MouseListener {
                     Syllesia.getInstance().getLogger().debug("MouseEvent.BUTTON1[LEFT] " + playerInteractEvent.getName() + ", Location: " + playerInteractEvent.getLocation());
                     if (target.getTexture().getId() == 6) {
                         player.addCoins(1);
-                        player.sendTitle("You have received a coin.");
+                        player.sendTitle("You have received a coin.", Timespan.of("2 seconds"));
                         Syllesia.getInstance().getLogger().debug("Player[" + player.getName() + "] has received a coin[" + player.getCoins() + "].");
                     }
                 }
@@ -219,7 +273,8 @@ public class Camera implements KeyListener, MouseListener {
                 break;
             case MouseEvent.BUTTON3:
                 Player mainPlayer = Syllesia.getInstance().getPlatform().getMainPlayer();
-                PlayerInteractEvent newEvent = new PlayerInteractEvent(mainPlayer, mainPlayer.getTargetLocation(3), PlayerInteractEvent.ClickType.RIGHT);
+                type = shift ? PlayerInteractEvent.ClickType.SHIFT_RIGHT : PlayerInteractEvent.ClickType.RIGHT;
+                PlayerInteractEvent newEvent = new PlayerInteractEvent(mainPlayer, mainPlayer.getTargetLocation(3), type);
                 Syllesia.getInstance().getEventBus().callEvent(newEvent);
                 if (newEvent.isPrevented())
                     return;

@@ -1,10 +1,12 @@
 package art.sylleth.syllesia;
 
+import art.sylleth.syllesia.api.commands.CommandHandler;
 import art.sylleth.syllesia.api.configs.Settings;
 import art.sylleth.syllesia.api.configs.Userdata;
 import art.sylleth.syllesia.api.quest.Quest;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
+import art.sylleth.syllesia.api.entities.npc.ElvenDeity;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.handlers.event.EventBus;
@@ -65,6 +67,7 @@ public class Syllesia {
     private final List<Map> maps = new ArrayList<>();
     private final List<ConfigurationFile> configurations = new ArrayList<>();
     private final List<Quest> quests = new ArrayList<>();
+    private final CommandHandler commandHandler = new CommandHandler();
     private Platform platform;
 
     /**
@@ -203,6 +206,16 @@ public class Syllesia {
     }
 
     /**
+     * Gets the command handler of this instance.
+     *
+     * @return the command handler.
+     */
+    @NotNull
+    public CommandHandler getCommandHandler() {
+        return this.commandHandler;
+    }
+
+    /**
      * Registers any serializable classes with JSONSerializable.
      */
     private void setupJsonSerializable() {
@@ -213,7 +226,9 @@ public class Syllesia {
      * Registers the maps used by the base game.
      */
     private void setupMaps() {
-        Syllesia.instance.registerMap(new Map("Ruins", Map.BASE_MAP));
+        Map ruins = new Map("Ruins", Map.RUINS);
+        Syllesia.instance.registerMap(ruins);
+        ruins.addEntity(new ElvenDeity(new Location(2.5, 12, 0.2, -0.9, -0.3, -0.1, ruins)));
     }
 
     /**

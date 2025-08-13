@@ -12,22 +12,29 @@ import java.util.Map;
  */
 public class Lang extends ConfigurationFile {
 
+    private static final Map<String, Object> DEFAULTS = new HashMap<>();
+    private static String EXTENSION;
+
+    static {
+        Lang.EXTENSION = ((Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS)).getLang();
+        if (Lang.EXTENSION.equals("en_GB")) {
+            DEFAULTS.put("title", "Syllesia");
+        }
+    }
+
     private final Map<String, String> lang = new HashMap<>();
-    private final String extension;
 
     /**
      * Creates a new language file.
      */
     public Lang() {
         super(FileType.KEY_VAL, true);
-        this.extension = ((Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS)).getLang();
     }
 
     @Override
-    public void applyDefaults() {
-        if (this.extension.equals("en_GB")) {
-            this.writeFile(Map.of("title", "Syllesia"));
-        } // TODO other language defaults.
+    @NotNull
+    public Map<String, Object> getDefaults() {
+        return Lang.DEFAULTS;
     }
 
     @Override
@@ -39,7 +46,7 @@ public class Lang extends ConfigurationFile {
     @Override
     @NotNull
     public String getPath() {
-        return "lang_" + extension;
+        return "lang_" + Lang.EXTENSION;
     }
 
     @Override

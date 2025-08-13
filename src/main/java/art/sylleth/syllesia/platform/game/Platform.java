@@ -6,6 +6,7 @@ import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.api.world.Location;
+import art.sylleth.syllesia.misc.Pair;
 import art.sylleth.syllesia.platform.screen.Screen;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,7 +25,6 @@ public class Platform extends JFrame implements Runnable {
 
     private static final int SCREEN_WIDTH = 720;
     private static final int SCREEN_HEIGHT = 520;
-    private static final int OVERLAY_INDEX = 99;
 
     private final Thread thread;
     private final BufferedImage image;
@@ -37,6 +37,8 @@ public class Platform extends JFrame implements Runnable {
     private final JLayeredPane pane = this.getLayeredPane();
 
     // Overlay components.
+    private final BufferedImage coinIcon = Misc.getResourceImage("textures/icons/coin.png");
+
     private final JLabel location = new JLabel();
     private final JLabel coins = new JLabel();
     private final JPanel map = new JPanel();
@@ -101,8 +103,8 @@ public class Platform extends JFrame implements Runnable {
             @Override
             public void windowDeactivated(WindowEvent event) {}
         });
-        this.setBackground(Color.LIGHT_GRAY);
-        this.setupOverlay();
+        this.setBackground(Color.BLUE);
+        // this.setupOverlay();
         Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
         if (settings.isDebug())
             this.initiateDebug();
@@ -177,6 +179,11 @@ public class Platform extends JFrame implements Runnable {
         Location location = this.player.getLocation();
         int x = (int) location.getX();
         int y = (int) location.getY();
+        int startX = x - 2;
+        int startY = y - 2;
+        for (int i = 0; i < 5; i++) {
+
+        }
         /*
         0 0 0 0 0
         0 0 0 0 0
@@ -213,7 +220,7 @@ public class Platform extends JFrame implements Runnable {
     }
 
     /**
-     * Draws the current image onto the screen.
+     * Draws the current image onto the screen, as well as the overlay
      */
     public void render() {
         BufferStrategy buffer = this.game.getBufferStrategy();
@@ -222,6 +229,30 @@ public class Platform extends JFrame implements Runnable {
         else {
             Graphics graphics = buffer.getDrawGraphics();
             graphics.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
+            // Coin Counter
+            graphics.drawImage(this.coinIcon, SCREEN_WIDTH - 125, SCREEN_HEIGHT - 100, null);
+            graphics.setColor(Color.WHITE);
+            graphics.setFont(new Font("monospaced", Font.BOLD, 20));
+            graphics.drawString(player.getCoins() + "", SCREEN_WIDTH - 75, SCREEN_HEIGHT - 65);
+            // Title Handler
+            Pair<String, Double> title = player.getTitle();
+            if (title.hasFirst() && title.hasSecond()) {
+                if (title.getSecond() < System.currentTimeMillis())
+                    player.sendTitle(null, null);
+                else {
+                    graphics.setFont(new Font("monospaced", Font.PLAIN, 50));
+                    graphics.drawString(player.getTitle().getFirst(), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2); // TODO figure out a way to center it dependant on text length.
+                }
+            }
+            // Command Bar
+            if (player.isTyping()) {
+                Color colour = new Color(84, 84, 84, 255 / 2);
+                graphics.setColor(colour);
+                graphics.drawRect(0, SCREEN_HEIGHT, (SCREEN_WIDTH / 5) * 2, 50);
+                graphics.setColor(Color.WHITE);
+                graphics.setFont(new Font("monospaced", Font.PLAIN, 20));
+                graphics.drawString(player.getChat(), 0, SCREEN_HEIGHT);
+            }
             graphics.dispose();
             buffer.show();
         }

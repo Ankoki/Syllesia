@@ -4,21 +4,37 @@ import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.files.ConfigurationFile;
+import art.sylleth.syllesia.files.json.JSONSerializable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class used for loading and modifying userdata.
  */
 public class Userdata extends ConfigurationFile {
 
+    private static final Map<String, Object> DEFAULTS = new HashMap<>();
+
+    static {
+        DEFAULTS.put("name", "TestUser");
+        DEFAULTS.put("uuid", UUID.randomUUID());
+        DEFAULTS.put("coins", 0);
+        DEFAULTS.put("last-location", new Location(4.5, 4.5, 1, 0, 0, -0.4, Syllesia.getInstance().getBaseMap()));
+        DEFAULTS.put("last-seen", System.currentTimeMillis());
+        DEFAULTS.put("completed-quests", new ArrayList<>());
+        DEFAULTS.put("metadata", new HashMap<>());
+    }
+
     private String name;
     private UUID uuid;
     private double coins = 0;
     private Location lastLocation;
     private long lastSeen;
-    private final List<String> completedQuests = new ArrayList<>();
+    private List<String> completedQuests;
+    private Map<String, Object> metadata;
 
     /**
      * Creates a new userdata file.
@@ -28,15 +44,9 @@ public class Userdata extends ConfigurationFile {
     }
 
     @Override
-    public void applyDefaults() {
-        Map<String, Object> defaults = new HashMap<>();
-        defaults.put("name", "TestUser");
-        defaults.put("uuid", UUID.randomUUID());
-        defaults.put("coins", coins);
-        defaults.put("last-location", new Location(4.5, 4.5, 1, 0, 0, -0.4, Syllesia.getInstance().getBaseMap()));
-        defaults.put("last-seen", System.currentTimeMillis());
-        defaults.put("completed-quests", completedQuests);
-        this.writeFile(defaults);
+    @NotNull
+    public Map<String, Object> getDefaults() {
+        return Userdata.DEFAULTS;
     }
 
     @Override
@@ -59,8 +69,10 @@ public class Userdata extends ConfigurationFile {
         this.coins = Double.parseDouble(data.get("coins").toString());
         this.lastLocation = (Location) data.get("last-location");
         this.lastSeen = Long.parseLong(data.get("last-seen").toString());
-        this.completedQuests.clear();
-        this.completedQuests.addAll(Arrays.asList((String[]) data.get("completed-quests")));
+        this.completedQuests = new ArrayList<>();
+        this.completedQuests.addAll((List<String>) data.get("completed-quests"));
+        this.metadata = new ConcurrentHashMap<>();
+        this.metadata.putAll((Map<String, Object>) data.get("metadata"));
     }
 
     @Override
@@ -73,18 +85,8 @@ public class Userdata extends ConfigurationFile {
         data.put("last-location", player.getLocation());
         data.put("last-seen", System.currentTimeMillis());
         data.put("completed-quests", this.completedQuests);
+        data.put("metadata", this.metadata);
         this.writeFile(data);
-    }
-
-    /**
-     * Validates all necessary keys are present.
-     *
-     * @param data the map to check against.
-     */
-    public void validateMap(Map<String, Object> data) {
-        for (String key : new String[]{"name", "uuid", "coins", "last-location", "last-seen"})
-            if (!data.containsKey(key))
-                throw new IllegalArgumentException("The '" + key + "' is missing.");
     }
 
     /**
@@ -144,6 +146,47 @@ public class Userdata extends ConfigurationFile {
      */
     public long getLastSeen() {
         return this.lastSeen;
+    }
+
+    /**
+     * Writes persistent metadata to this userdata file.
+     * This will write over any existing key.
+     *
+     * @param key the key of this data.
+     * @param value the value.
+     * @return the previous value if overwritten, otherwise null.
+     */
+    @Nullable
+    public Object writeMetadata(String key, Object value) {
+        if (!(value instanceof Number ||
+                value instanceof String ||
+                value instanceof Boolean ||
+                value instanceof Map ||
+                value instanceof List<?> ||
+                value instanceof JSONSerializable))
+            throw new IllegalArgumentException("Invalid metadata value for persistent storage.");
+        return this.metadata.put(key, value);
+    }
+
+    /**
+     * Checks if the userdata has metadata matching the given key.
+     *
+     * @param key the key to check for.
+     * @return true if the metadata contains the key, else false.
+     */
+    public boolean hasMetadata(String key) {
+        return this.metadata.containsKey(key);
+    }
+
+    /**
+     * Removes the given metadata key from storage.
+     *
+     * @param key the key to erase.
+     * @return the value of the removed key, or if it doesn't exist, null.
+     */
+    @Nullable
+    public Object removeMetadata(String key) {
+        return this.metadata.remove(key);
     }
 
 }

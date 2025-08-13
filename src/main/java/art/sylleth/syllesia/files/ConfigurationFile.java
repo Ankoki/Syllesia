@@ -72,7 +72,7 @@ public abstract class ConfigurationFile {
                 root.createNewFile();
                 this.applyDefaults();
             } catch (IOException ex) {
-                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 74);
+                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 75);
             }
         }
         if (read)
@@ -98,6 +98,8 @@ public abstract class ConfigurationFile {
 
     /**
      * Handle the reading of the data.<br>
+     * You should call {@link ConfigurationFile#validateMap(Map)} at the start of this method to assert all
+     * expected default items are in the file.
      *
      * @param data the data from the file.
      */
@@ -121,11 +123,35 @@ public abstract class ConfigurationFile {
     }
 
     /**
+     * Method to obtain a map containing all the default values of this configuration.
+     * Will be used to apply defaults when a file is created, or reset missing values.
+     *
+     * @return the default map.
+     */
+    @NotNull
+    public abstract Map<String, Object> getDefaults();
+
+    /**
      * Method to copy a default configuration to the file.
      * Will be used when the file has not been found, and has been newly created.
      * Should call the {@link ConfigurationFile#writeFile(Map)} method for ease of use.
      */
-    public abstract void applyDefaults();
+    public void applyDefaults() {
+        this.writeFile(this.getDefaults());
+    }
+
+    /**
+     * Validates all necessary keys are present.
+     *
+     * @param data the map to check against.
+     */
+    public void validateMap(Map<String, Object> data) {
+        for (String key : this.getDefaults().keySet()) {
+            if (!data.containsKey(key)) {
+                data.put(key, this.getDefaults().get(key));
+            }
+        }
+    }
 
     /**
      * Writes the given map to the file, using either KEY_VAL or JSON storage.

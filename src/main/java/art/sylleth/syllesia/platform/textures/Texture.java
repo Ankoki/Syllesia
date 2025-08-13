@@ -25,12 +25,12 @@ public class Texture {
 
     static {
         AIR = Texture.registerTexture("", 64, 0);
-        SLIME = Texture.registerTexture("textures/test/slime.png", 64, 1);
-        GRASS = Texture.registerTexture("textures/test/grass.png", 64, 2);
-        STONE_WALL = Texture.registerTexture("textures/test/stone_wall.png", 64, 3);
-        LIGHT_METAL = Texture.registerTexture("textures/test/light_metal.png", 64, 4);
-        DARK_METAL = Texture.registerTexture("textures/test/dark_metal.png", 64, 5);
-        MOLTEN_GOLD = Texture.registerTexture("textures/test/molten_gold.jpg", 512, 6);
+        SLIME = Texture.registerTexture("textures/blocks/slime.png", 64, 1);
+        GRASS = Texture.registerTexture("textures/blocks/grass.png", 64, 2);
+        STONE_WALL = Texture.registerTexture("textures/blocks/stone_wall.png", 64, 3);
+        LIGHT_METAL = Texture.registerTexture("textures/blocks/light_metal.png", 64, 4);
+        DARK_METAL = Texture.registerTexture("textures/blocks/dark_metal.png", 64, 5);
+        MOLTEN_GOLD = Texture.registerTexture("textures/blocks/molten_gold.jpg", 512, 6);
     }
 
     /**

@@ -2,10 +2,11 @@ package art.sylleth.syllesia.entities;
 
 import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.api.configs.Userdata;
-import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.files.json.JSONSerializable;
+import art.sylleth.syllesia.misc.Pair;
+import art.sylleth.syllesia.misc.Timespan;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +26,9 @@ public class Player {
     private final Camera camera;
     private final java.util.Map<String, Object> metadata = new HashMap<>();
     private final Userdata userdata = (Userdata) Syllesia.getInstance().getConfiguration(ConfigurationFile.USERDATA);
+    private final Pair<String, Double> title = new Pair<>(null, null);
+    private boolean typing;
+    private final StringBuilder chat = new StringBuilder();
 
     /**
      * Creates a new player object with the given details.
@@ -175,11 +179,11 @@ public class Player {
             if (!(value instanceof Number ||
                 value instanceof String ||
                 value instanceof Boolean ||
-                value instanceof Map ||
+                value instanceof java.util.Map ||
                 value instanceof List<?> ||
                 value instanceof JSONSerializable))
                 throw new IllegalArgumentException("Invalid metadata value for persistent storage.");
-            // TODO userdata.writeMetadata(key, value);
+            userdata.writeMetadata(key, value);
         }
     }
 
@@ -190,7 +194,7 @@ public class Player {
      * @return true if the metadata contains the key, else false.
      */
     public boolean hasMetadata(String key) {
-        return this.metadata.containsKey(key) /* || userdata.hasMetadata(key)*/;
+        return this.metadata.containsKey(key) || userdata.hasMetadata(key);
     }
 
     /**
@@ -201,16 +205,78 @@ public class Player {
      */
     public void removeMetadata(String key) {
         this.metadata.remove(key);
-        // TODO userdata.removeMetadata(key);
+        userdata.removeMetadata(key);
     }
 
     /**
      * Sends a title message to the player.
+     * If another title is sent after this, any previous titles will be overwritten.
+     * You may provide null for these parameters to prematurely erase a title that is being shown.
      *
      * @param text the text to show.
+     * @param timespan the amount of time this title should be shown for.
      */
-    public void sendTitle(String text) {
-        // TODO title mechanics.
+    public void sendTitle(@Nullable String text, @Nullable Timespan timespan) {
+        this.title.setFirst(text);
+        if (timespan != null)
+            this.title.setSecond(System.currentTimeMillis() + timespan.getAs(Timespan.Unit.MILLISECONDS));
+        else
+            this.title.setSecond(null);
+    }
+
+    /**
+     * Gets the current title that should be shown to the player.
+     * Will not return null, however {@link Pair#hasFirst()} and {@link Pair#hasSecond()} may return null if
+     * there is no title being shown.
+     *
+     * @return the title pair.
+     */
+    @NotNull
+    public Pair<String, Double> getTitle() {
+        return this.title;
+    }
+
+    /**
+     * Gets if the player is currently typing.
+     *
+     * @return true if typing.
+     */
+    public boolean isTyping() {
+        return this.typing;
+    }
+
+    /**
+     * Sets if this player is typing or not.
+     *
+     * @param typing true if typing, else false.
+     */
+    public void setTyping(boolean typing) {
+        this.typing = typing;
+    }
+
+    /**
+     * Appends a string to the current chat of this player.
+     *
+     * @param string the string to append.
+     */
+    public void appendChat(String string) {
+        this.chat.append(string);
+    }
+
+    /**
+     * Gets the current chat bar.
+     *
+     * @return the chat bar of this player.
+     */
+    public String getChat() {
+        return this.chat.toString();
+    }
+
+    /**
+     * Clears the current chat bar of this player.
+     */
+    public void clearChat() {
+        this.chat.setLength(0);
     }
 
 }

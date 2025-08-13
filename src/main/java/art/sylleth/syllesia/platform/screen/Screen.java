@@ -1,9 +1,14 @@
 package art.sylleth.syllesia.platform.screen;
 
+import art.sylleth.syllesia.api.world.Map;
+import art.sylleth.syllesia.entities.Entity;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.textures.Texture;
+
+import java.awt.image.BufferedImage;
+import java.util.List;
 
 /**
  * Handles displaying a cameras view.
@@ -42,6 +47,7 @@ public class Screen {
             if (pixels[i] != Misc.fromHex("704F38").getRGB())
                 pixels[i] = Misc.fromHex("704F38").getRGB();
         Location location = camera.getLocation();
+        double[] zBuffer = new double[width];
         for (int x = 0; x < this.width; x++) {
             double cameraX = (2.0 * x) / (this.width - 1.0);
             double rayDirX = location.getXDir() + location.getXPlane() * cameraX;
@@ -87,6 +93,7 @@ public class Screen {
                 perpWallDist = Math.abs((mapX - location.getX() + (1.0 - stepX) / 2) / rayDirX);
             else
                 perpWallDist = Math.abs((mapY - location.getY() + (1.0 - stepY) / 2 ) / rayDirY);
+            zBuffer[x] = perpWallDist;
             int lineHeight;
             if (perpWallDist > 0)
                 lineHeight = Math.abs((int) (height / perpWallDist));
@@ -115,6 +122,73 @@ public class Screen {
                 pixels[x + y * width] = colour;
             }
         }
+        this.renderEntities(camera, pixels, zBuffer);
+    }
+
+    private void renderEntities(Camera camera, int[] pixels, double[] zBuffer) {
+        Location location = camera.getLocation();
+        double xPos = location.getX();
+        double yPos = location.getY();
+        double xDir = location.getXDir();
+        double yDir = location.getYDir();
+        double xPlane = location.getXPlane();
+        double yPlane = location.getYPlane();
+        List<Entity> entities = location.getMap().getEntities();
+        entities.sort((a, b) -> {
+            double distA = Math.pow(xPos - a.getLocation().getX(), 2) + Math.pow(yPos - a.getLocation().getY(), 2);
+            double distB = Math.pow(xPos - b.getLocation().getX(), 2) + Math.pow(yPos - b.getLocation().getY(), 2);
+            return Double.compare(distB, distA);
+        });
+        for (Entity entity : entities) {
+            double spriteX = entity.getLocation().getX() - xPos;
+            double spriteY = entity.getLocation().getY() - yPos;
+            double invDet = 1.0 / (xPlane * yDir - xDir * yPlane);
+            double transformX = invDet * (yDir * spriteX - xDir * spriteY);
+            double transformY = invDet * (-yPlane * spriteX + xPlane * spriteY);
+            if (transformY <= 0)
+                continue; // Entity is behind player.
+            int screenX = (int) ((width/ 2.0) * (1 + transformX / transformY));
+            int spriteHeight = Math.abs((int) (height / transformY));
+            int drawEndY = height / 2 + spriteHeight / 2;
+            int drawStartY = drawEndY - spriteHeight;
+            BufferedImage sprite = this.getSpriteDirection(entity, transformX, transformY);
+            int spriteWidth = spriteHeight; // Lets pretend theyre squares for now.
+            int drawStartX = -spriteWidth / 2 + screenX;
+            int drawEndX = spriteWidth / 2 + screenX;
+            for (int x = drawStartX; x < drawEndX; x++) {
+                if (x < 0 || x >= width)
+                    continue;
+                if (transformY > zBuffer[x])
+                    continue;
+                int texX = (x - drawStartX) * sprite.getWidth() / spriteWidth;
+                for (int y = drawStartY; y < drawEndY; y++) {
+                    if (y < 0 || y >= height)
+                        continue;
+                    int texY = (y - drawStartY) * sprite.getHeight() / spriteHeight;
+                    int colour = sprite.getRGB(texX, texY);
+                    if ((colour >> 24) == 0x00)
+                        continue; // Skip transparent pixels.
+                    pixels[x + y * width] = colour;
+                }
+            }
+        }
+
+    }
+
+    // TODO fix
+    private BufferedImage getSpriteDirection(Entity entity, double transformX, double transformY) {
+        if (entity.alwaysFacePlayer())
+            return entity.getFrontTexture();
+        double angle = Math.atan2(-transformX, transformY);
+        if (angle < 0)
+            angle += 2 * Math.PI;
+        if (angle >= 7 * Math.PI / 4 || angle < Math.PI / 4)
+            return entity.getFrontTexture();
+        if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4)
+            return entity.getLeftTexture();
+        if (angle >= 3 * Math.PI / 4 && angle < 5 * Math.PI / 4)
+            return entity.getBackTexture();
+        return entity.getRightTexture();
     }
 
 }

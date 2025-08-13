@@ -76,8 +76,11 @@ public class Camera implements KeyListener, MouseListener {
         if (event.getKeyCode() == KeyEvent.VK_ENTER) {
             if (player.isTyping()) {
                 String chat = player.getChat();
-                if (chat.isBlank())
+                if (chat.isBlank()) {
+                    player.clearChat();
+                    player.setTyping(false);
                     return;
+                }
                 String[] split = chat.split(" ");
                 String command = split[0];
                 if (split.length == 1) {
@@ -104,6 +107,9 @@ public class Camera implements KeyListener, MouseListener {
                 }
                 player.clearChat();
                 player.setTyping(false);
+            } else {
+                player.clearChat(); // Just in case.
+                player.setTyping(true);
             }
         }
         if (event.getKeyCode() == KeyEvent.VK_C) {

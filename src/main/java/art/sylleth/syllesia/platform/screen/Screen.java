@@ -1,6 +1,5 @@
 package art.sylleth.syllesia.platform.screen;
 
-import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Entity;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.api.world.Location;

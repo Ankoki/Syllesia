@@ -240,18 +240,21 @@ public class Platform extends JFrame implements Runnable {
                 if (title.getSecond() < System.currentTimeMillis())
                     player.sendTitle(null, null);
                 else {
-                    graphics.setFont(new Font("monospaced", Font.PLAIN, 50));
-                    graphics.drawString(player.getTitle().getFirst(), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2); // TODO figure out a way to center it dependant on text length.
+                    Font font = new Font("monospaced", Font.PLAIN, 30);
+                    graphics.setFont(font);
+                    FontMetrics metrics = graphics.getFontMetrics(font);
+                    int x = (SCREEN_WIDTH / 2) - (metrics.stringWidth(title.getFirst()) / 2);
+                    graphics.drawString(player.getTitle().getFirst(), x, SCREEN_HEIGHT / 2);
                 }
             }
             // Command Bar
             if (player.isTyping()) {
-                Color colour = new Color(84, 84, 84, 255 / 2);
+                Color colour = new Color(84, 84, 84, 200);
                 graphics.setColor(colour);
-                graphics.drawRect(0, SCREEN_HEIGHT, (SCREEN_WIDTH / 5) * 2, 50);
+                graphics.fillRect(0, SCREEN_HEIGHT - 58, SCREEN_WIDTH - 100, 30);
                 graphics.setColor(Color.WHITE);
                 graphics.setFont(new Font("monospaced", Font.PLAIN, 20));
-                graphics.drawString(player.getChat(), 0, SCREEN_HEIGHT);
+                graphics.drawString(player.getChat(), 5, SCREEN_HEIGHT - 38);
             }
             graphics.dispose();
             buffer.show();

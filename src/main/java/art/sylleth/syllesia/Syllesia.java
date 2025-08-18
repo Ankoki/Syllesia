@@ -1,6 +1,9 @@
 package art.sylleth.syllesia;
 
-import art.sylleth.syllesia.api.commands.CommandHandler;
+import art.sylleth.syllesia.handlers.CommandHandler;
+import art.sylleth.syllesia.api.commands.converters.*;
+import art.sylleth.syllesia.api.commands.impl.AdminCommands;
+import art.sylleth.syllesia.api.configs.Mapdata;
 import art.sylleth.syllesia.api.configs.Settings;
 import art.sylleth.syllesia.api.configs.Userdata;
 import art.sylleth.syllesia.api.quest.Quest;
@@ -9,7 +12,8 @@ import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.api.entities.npc.ElvenDeity;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.files.json.JSONSerializable;
-import art.sylleth.syllesia.handlers.event.EventBus;
+import art.sylleth.syllesia.handlers.ConversationHandler;
+import art.sylleth.syllesia.handlers.EventHandler;
 import art.sylleth.syllesia.misc.Logger;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.platform.game.Camera;
@@ -17,7 +21,6 @@ import art.sylleth.syllesia.platform.game.Platform;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,21 +56,23 @@ public class Syllesia {
             Class.forName("art.sylleth.syllesia.platform.textures.Texture");
         } catch (ReflectiveOperationException ignored) {}
         Syllesia.instance.setupJsonSerializable();
-        Syllesia.instance.setupMaps();
         Syllesia.instance.declareQuests();
         Syllesia.instance.setupConfigurations();
+        Syllesia.instance.spawnEntities();
+        Syllesia.instance.setupCommands();
         Userdata userdata = (Userdata) Syllesia.instance.getConfiguration(ConfigurationFile.USERDATA);
         Player player = new Player(userdata.getName(), userdata.getUuid(), new Camera(userdata.getLastLocation()));
-        Syllesia.getInstance().setPlatform(new Platform(player));
+        Syllesia.instance.setPlatform(new Platform(player));
     }
 
-    private final EventBus eventBus = new EventBus();
+    private final EventHandler eventHandler = new EventHandler();
     private final String version = "0.1-alpha";
     private final Logger logger = new Logger();
     private final List<Map> maps = new ArrayList<>();
     private final List<ConfigurationFile> configurations = new ArrayList<>();
     private final List<Quest> quests = new ArrayList<>();
     private final CommandHandler commandHandler = new CommandHandler();
+    private final ConversationHandler conversationHandler = new ConversationHandler();
     private Platform platform;
 
     /**
@@ -76,8 +81,8 @@ public class Syllesia {
      * @return the event bus.
      */
     @NotNull
-    public EventBus getEventBus() {
-        return this.eventBus;
+    public EventHandler getEventBus() {
+        return this.eventHandler;
     }
 
     /**
@@ -111,17 +116,6 @@ public class Syllesia {
     }
 
     /**
-     * Sets the platform this instance should be running on.
-     *
-     * @param platform the platform.
-     */
-    private void setPlatform(Platform platform) {
-        if (this.platform != null)
-            throw new IllegalStateException("You cannot write over a running platform.");
-        this.platform = platform;
-    }
-
-    /**
      * Gets the base map of this game.
      *
      * @return the base map.
@@ -146,39 +140,30 @@ public class Syllesia {
     }
 
     /**
-     * Gets a map with the given id.
+     * Gets all the registered maps.
      *
-     * @param id the id of the map to retrieve.
-     * @return the map if found, else null.
+     * @return the maps.
      */
-    @Nullable
-    public Map getMap(int id) {
-        for (Map map : maps)
-            if (map.getId() == id)
-                return map;
-        return null;
+    @NotNull
+    public Map[] getMaps() {
+        return this.maps.toArray(new Map[0]);
     }
 
     /**
-     * Registers a map. Assigns an ID and returns the map.
+     * Registers a map.
      *
      * @param map the map to register.
-     * @return the id of the newly added map.
      */
-    public int registerMap(Map map) {
+    public void registerMap(Map map) {
         if (!this.maps.contains(map))
             this.maps.add(map);
-        int index = this.maps.indexOf(map);
-        try {
-            Field field = map.getClass().getDeclaredField("id");
-            boolean before = field.canAccess(map);
-            field.setAccessible(true);
-            field.set(map, index);
-            field.setAccessible(before);
-        } catch (ReflectiveOperationException ex) {
-            this.getLogger().error(ex, Syllesia.class, 154);
-        }
-        return index;
+    }
+
+    /**
+     * Clears the map registry.
+     */
+    public void clearMapRegistry() {
+        this.maps.clear();
     }
 
     /**
@@ -216,6 +201,27 @@ public class Syllesia {
     }
 
     /**
+     * Gets the conversation handler of this instance.
+     *
+     * @return the conversation handler.
+     */
+    @NotNull
+    public ConversationHandler getConversationHandler() {
+        return this.conversationHandler;
+    }
+
+    /**
+     * Sets the platform this instance should be running on.
+     *
+     * @param platform the platform.
+     */
+    private void setPlatform(Platform platform) {
+        if (this.platform != null)
+            throw new IllegalStateException("You cannot write over a running platform.");
+        this.platform = platform;
+    }
+
+    /**
      * Registers any serializable classes with JSONSerializable.
      */
     private void setupJsonSerializable() {
@@ -223,21 +229,40 @@ public class Syllesia {
     }
 
     /**
-     * Registers the maps used by the base game.
+     * Spawns the entities used by the base game.
      */
-    private void setupMaps() {
-        Map ruins = new Map("Ruins", Map.RUINS);
-        Syllesia.instance.registerMap(ruins);
-        ruins.addEntity(new ElvenDeity(new Location(2.5, 12, 0.2, -0.9, -0.3, -0.1, ruins)));
+    private void spawnEntities() {
+        Map ruins = this.getMap("ruins");
+        this.getMap("ruins").addEntity(new ElvenDeity(new Location(2.5, 12, 0.2, -0.9, -0.3, -0.1, ruins)));
     }
 
     /**
      * Initiates the configurations used by the base game.
      */
     private void setupConfigurations() {
+        this.registerConfiguration(new Mapdata()); // Mapdata before userdata so locations don't get scrambled.
         this.registerConfiguration(new Settings());
         this.registerConfiguration(new Userdata());
         // TODO lang files.
+    }
+
+    /**
+     * Initialises all commands that come with Syllesia.
+     */
+    private void setupCommands() {
+        this.commandHandler.registerConverters(
+                new TextureConverter(),
+                new MapConverter(),
+                new DoubleConverter(),
+                new FloatConverter(),
+                new IntegerConverter(),
+                new LongConverter(),
+                new NumberConverter());
+        Settings settings = (Settings) getConfiguration(ConfigurationFile.SETTINGS);
+        if (settings.isAdminCommandsEnabled()) {
+            this.logger.debug("Admin Commands Enabled");
+            this.commandHandler.registerCommandClass(new AdminCommands());
+        }
     }
 
     /**

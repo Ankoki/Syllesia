@@ -1,4 +1,4 @@
-package art.sylleth.syllesia.handlers.event;
+package art.sylleth.syllesia.event;
 
 /**
  * Class to create events that can be prevented from happening.<br>

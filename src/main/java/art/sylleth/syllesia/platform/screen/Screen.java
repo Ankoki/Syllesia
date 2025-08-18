@@ -14,19 +14,16 @@ import java.util.List;
  */
 public class Screen {
 
-    private final int[][] map;
     private final int width;
     private final int height;
 
     /**
      * Creates a new screen.
      *
-     * @param map the map to view.
      * @param width the width of the screen.
      * @param height the height of the screen.
      */
-    public Screen(int[][] map, int width, int height) {
-        this.map = map;
+    public Screen(int width, int height) {
         this.width = width;
         this.height = height;
     }
@@ -40,12 +37,13 @@ public class Screen {
     public void update(Camera camera, int[] pixels) {
         // Clear camera.
         for (int i = 0; i < (pixels.length / 2); i++)
-            if (pixels[i] != Misc.fromHex("82C8E5").getRGB())
-                pixels[i] = Misc.fromHex("82C8E5").getRGB();
+            if (pixels[i] != Misc.fromHex("004962").getRGB())
+                pixels[i] = Misc.fromHex("004962").getRGB();
         for (int i = pixels.length / 2; i < pixels.length; i++)
-            if (pixels[i] != Misc.fromHex("704F38").getRGB())
-                pixels[i] = Misc.fromHex("704F38").getRGB();
+            if (pixels[i] != Misc.fromHex("281b0d").getRGB())
+                pixels[i] = Misc.fromHex("281b0d").getRGB();
         Location location = camera.getLocation();
+        int[][] map = location.getMap().getMatrix();
         double[] zBuffer = new double[width];
         for (int x = 0; x < this.width; x++) {
             double cameraX = (2.0 * x) / (this.width - 1.0);
@@ -104,7 +102,7 @@ public class Screen {
             int drawEnd = lineHeight / 2 + height / 2;
             if (drawEnd >= height)
                 drawEnd = height - 1;
-            Texture texture = Texture.fromId(map[mapX][mapY] - 1);
+            Texture texture = Texture.fromId(map[mapX][mapY]);
             double wallX;
             if (side == 0)
                 wallX = location.getY() + perpWallDist * rayDirY;
@@ -151,7 +149,7 @@ public class Screen {
             int drawEndY = height / 2 + spriteHeight / 2;
             int drawStartY = drawEndY - spriteHeight;
             BufferedImage sprite = this.getSpriteDirection(entity, transformX, transformY);
-            int spriteWidth = spriteHeight; // Lets pretend theyre squares for now.
+            int spriteWidth = spriteHeight; // Let's pretend they're squares for now.
             int drawStartX = -spriteWidth / 2 + screenX;
             int drawEndX = spriteWidth / 2 + screenX;
             for (int x = drawStartX; x < drawEndX; x++) {

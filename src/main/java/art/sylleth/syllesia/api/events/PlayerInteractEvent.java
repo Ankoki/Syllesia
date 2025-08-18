@@ -1,7 +1,7 @@
 package art.sylleth.syllesia.api.events;
 
 import art.sylleth.syllesia.entities.Player;
-import art.sylleth.syllesia.handlers.event.PreventableEvent;
+import art.sylleth.syllesia.event.PreventableEvent;
 import art.sylleth.syllesia.api.world.Location;
 import org.jetbrains.annotations.NotNull;
 

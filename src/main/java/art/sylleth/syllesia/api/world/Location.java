@@ -5,7 +5,6 @@ import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 
@@ -23,15 +22,15 @@ public class Location extends JSONSerializable {
      */
     @NotNull
     public static Location deserialize(java.util.Map<String, Object> data) {
-        for (String key : new String[]{"x-pos", "y-pos", "map-id"})
+        for (String key : new String[]{"x-pos", "y-pos", "map-name"})
             if (!data.containsKey(key))
                 throw new IllegalArgumentException("Required key '" + key + "' not found.");
         double xPos = (double) data.get("x-pos");
         double yPos = (double) data.get("y-pos");
-        int mapId = (int) data.get("map-id");
-        Map map = Syllesia.getInstance().getMap(mapId);
+        String mapName = (String) data.get("map-name");
+        Map map = Syllesia.getInstance().getMap(mapName);
         if (map == null)
-            map = Syllesia.getInstance().getBaseMap(); // Default to regular world.
+            map = Syllesia.getInstance().getBaseMap(); // Default to default world.
         double xDir = 0;
         double yDir = 0;
         double xPlane = 0;
@@ -68,8 +67,8 @@ public class Location extends JSONSerializable {
     /**
      * Creates a new location with the given coordinates.
      *
-     * @param x the x position.
-     * @param y the y position.
+     * @param x   the x position.
+     * @param y   the y position.
      * @param map the map.
      */
     public Location(double x, double y, Map map) {
@@ -79,8 +78,8 @@ public class Location extends JSONSerializable {
     /**
      * Creates a new location with the given coordinates.
      *
-     * @param x the x position.
-     * @param y the y position.
+     * @param x    the x position.
+     * @param y    the y position.
      * @param xDir the x direction.
      * @param yDir the y direction.
      */
@@ -91,8 +90,8 @@ public class Location extends JSONSerializable {
     /**
      * Creates a new location with the given coordinates.
      *
-     * @param x the x position.
-     * @param y the y position.
+     * @param x    the x position.
+     * @param y    the y position.
      * @param xDir the x direction.
      * @param yDir the y direction.
      */
@@ -103,10 +102,10 @@ public class Location extends JSONSerializable {
     /**
      * Creates a new location with the given coordinates.
      *
-     * @param x the x position.
-     * @param y the y position.
-     * @param xDir the x direction.
-     * @param yDir the y direction.
+     * @param x      the x position.
+     * @param y      the y position.
+     * @param xDir   the x direction.
+     * @param yDir   the y direction.
      * @param xPlane the x plane.
      * @param yPlane the y plane.
      */
@@ -118,13 +117,13 @@ public class Location extends JSONSerializable {
     /**
      * Creates a new location with the given coordinates.
      *
-     * @param x the x position.
-     * @param y the y position.
-     * @param xDir the x direction.
-     * @param yDir the y direction.
+     * @param x      the x position.
+     * @param y      the y position.
+     * @param xDir   the x direction.
+     * @param yDir   the y direction.
      * @param xPlane the x plane.
      * @param yPlane the y plane.
-     * @param map the map of this location.
+     * @param map    the map of this location.
      */
     public Location(double x, double y, double xDir, double yDir, double xPlane, double yPlane, Map map) {
         this.xPos = x;
@@ -211,6 +210,36 @@ public class Location extends JSONSerializable {
     }
 
     /**
+     * Checks if this location is within two points.
+     *
+     * @param locationOne the first location.
+     * @param locationTwo the second location.
+     * @return true if location is within the two points, else false.
+     */
+    public boolean isWithin(Location locationOne, Location locationTwo) {
+        return this.isWithin(locationOne.getX(), locationOne.getY(), locationTwo.getX(), locationTwo.getY());
+    }
+
+    /**
+     * Checks if this location is within two sets of coordinates.
+     *
+     * @param x1 the first x value.
+     * @param y1 the first y value.
+     * @param x2 the second x value.
+     * @param y2 the second y value.
+     * @return true if location is within the coordinates, else false.
+     */
+    public boolean isWithin(double x1, double y1, double x2, double y2) {
+        double xMax = Math.max(x1, x2);
+        double yMax = Math.max(y1, y2);
+        double xMin = Math.min(x1, x2);
+        double yMin = Math.min(y1, y2);
+        boolean check = this.xPos >= xMin && this.xPos <= xMax &&
+                this.yPos >= yMin && this.yPos <= yMax;
+        return check;
+    }
+
+    /**
      * Creates an easily readable string version of this location, containing only the X and Y positions.
      * To get more information through a string, refer to the {@see Location#toString()} method.
      *
@@ -234,7 +263,7 @@ public class Location extends JSONSerializable {
         map.put("y-dir", this.yDir);
         map.put("x-plane", this.xPlane);
         map.put("y-plane", this.yPlane);
-        map.put("map-id", this.map.getId());
+        map.put("map-name", this.map.getName());
         return map;
     }
 

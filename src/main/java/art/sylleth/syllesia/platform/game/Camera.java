@@ -1,6 +1,9 @@
 package art.sylleth.syllesia.platform.game;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.api.conversation.Conversation;
+import art.sylleth.syllesia.api.conversation.Dialogue;
+import art.sylleth.syllesia.api.events.PlayerCommandProcessEvent;
 import art.sylleth.syllesia.api.events.PlayerInteractEvent;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
@@ -58,7 +61,16 @@ public class Camera implements KeyListener, MouseListener {
     public void keyPressed(KeyEvent event) {
         Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
         if (player.isTyping() && event.getKeyCode() != KeyEvent.VK_ENTER) {
-            player.appendChat(String.valueOf(event.getKeyChar()));
+            if (event.getKeyCode() == KeyEvent.VK_SHIFT)
+                return;
+            else if (event.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                player.deleteLast();
+                return;
+            }
+            char key = event.getKeyChar();
+            if (shift)
+                key = Character.toUpperCase(key);
+            player.appendChat(String.valueOf(key));
             return;
         }
         // Movement
@@ -83,11 +95,15 @@ public class Camera implements KeyListener, MouseListener {
                 }
                 String[] split = chat.split(" ");
                 String command = split[0];
+                PlayerCommandProcessEvent commandEvent = new PlayerCommandProcessEvent(player, command, new String[0]);
                 if (split.length == 1) {
-                    if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, new String[0]))
-                        player.sendTitle("Invalid command [" + command + "]", Timespan.of("2 seconds"));
-                    else
-                        Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + "]");
+                    Syllesia.getInstance().getEventBus().callEvent(commandEvent);
+                    if (!commandEvent.isPrevented()) {
+                        if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, new String[0]))
+                            player.sendTitle("Invalid command [" + command + "]", Timespan.of("2 seconds"));
+                        else
+                            Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + "]");
+                    }
                 } else {
                     String[] args = new String[split.length - 1];
                     int i = 0;
@@ -100,10 +116,14 @@ public class Camera implements KeyListener, MouseListener {
                         args[i] = string;
                         i++;
                     }
-                    if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, args))
-                        player.sendTitle("Invalid command [" + command + ", " + String.join(", ", args) + "]", Timespan.of("2 seconds"));
-                    else
-                        Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + String.join(", ", args) + "]");
+                    commandEvent = new PlayerCommandProcessEvent(player, command, args);
+                    Syllesia.getInstance().getEventBus().callEvent(commandEvent);
+                    if (!commandEvent.isPrevented()) {
+                        if (!Syllesia.getInstance().getCommandHandler().runCommand(player, command, args))
+                            player.sendTitle("Invalid command [" + command + " " + String.join(" ", args) + "]", Timespan.of("2 seconds"));
+                        else
+                            Syllesia.getInstance().getLogger().debug(player.getName() + " ran the command [" + command + " " + String.join(" ", args) + "]");
+                    }
                 }
                 player.clearChat();
                 player.setTyping(false);
@@ -111,10 +131,6 @@ public class Camera implements KeyListener, MouseListener {
                 player.clearChat(); // Just in case.
                 player.setTyping(true);
             }
-        }
-        if (event.getKeyCode() == KeyEvent.VK_C) {
-            Syllesia.getInstance().getPlatform().getMainPlayer().addCoins(50);
-            Syllesia.getInstance().getLogger().debug("50 coins added to player.");
         }
     }
 
@@ -151,26 +167,32 @@ public class Camera implements KeyListener, MouseListener {
     }
 
     /**
-     * Updates the world as the player sees it.
+     * Updates the player's view.
      *
      * @param world the world.
      */
     public void update(int[][] world) {
+        Dialogue dialogue = Syllesia.getInstance().getPlatform().getMainPlayer().getOpenDialogue();
+        if (dialogue != null)
+            return;
+        double moveSpeed = Camera.MOVE_SPEED * (this.shift ? 2 : 1); // Shift sprint logic.
+        // Doesn't fix drift entirely, however makes it a little bit closer to intended movement.
+        double driftFix = this.xDir < 0 ? 0.15 : -0.15;
         if (this.forward) {
-            int x = (int) (this.xPos + this.xDir * MOVE_SPEED);
-            if (world[x][(int) this.yPos] == 0) // 0 is the id of air in the world.
-                this.xPos += this.xDir * MOVE_SPEED;
-            int y = (int) (this.yPos + this.yDir * MOVE_SPEED);
-            if (world[(int) this.xPos][y] == 0)
-                this.yPos += this.yDir * MOVE_SPEED;
+            double x = this.xPos + (this.xDir + driftFix) * moveSpeed;
+            double y = this.yPos + (this.yDir + driftFix) * moveSpeed;
+            if (world[(int) x][(int) this.yPos] == 0) // 0 is the id of air in the world.
+                this.xPos = x;
+            if (world[(int) this.xPos][(int) y] == 0)
+                this.yPos = y;
         }
         if (this.back) {
-            int x = (int) (this.xPos - this.xDir * MOVE_SPEED);
-            if (world[x][(int) this.yPos] == 0)
-                this.xPos -= this.xDir * MOVE_SPEED;
-            int y = (int) (this.yPos - this.yDir * MOVE_SPEED);
-            if (world[(int) this.xPos][y] == 0)
-                this.yPos -= this.yDir * MOVE_SPEED;
+            double x = this.xPos - (this.xDir + driftFix) * moveSpeed;
+            double y = this.yPos - (this.yDir + driftFix) * moveSpeed;
+            if (world[(int) x][(int) this.yPos] == 0)
+                this.xPos = x;
+            if (world[(int) this.xPos][(int) y] == 0)
+                this.yPos = y;
         }
         if (this.left) {
             double xDirCopy = this.xDir;
@@ -254,9 +276,37 @@ public class Camera implements KeyListener, MouseListener {
     @Override
     public void mouseClicked(MouseEvent event) {
         PlayerInteractEvent.ClickType type;
+        Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
+        Dialogue dialogue = player.getOpenDialogue();
+        // Dialogue Interaction
+        if (dialogue != null && event.getButton() == MouseEvent.BUTTON1) { // No dialogue functionality for middle or right click.
+            int leftX = 190;
+            int rightX = 520;
+            int tbStep = 15;
+            int oStep = 20;
+            int currentY = 305;
+            Syllesia.getInstance().getLogger().debug("Click at [" + event.getX() + ", " + event.getY() + "]");
+            Location location = new Location(event.getX(), event.getY());
+            String[] choices = dialogue.getChoices();
+            for (int i = 0; i < choices.length; i++) {
+                int stepY = currentY + tbStep;
+                if (location.isWithin(leftX, currentY, rightX, stepY)) {
+                    String pointer = dialogue.getPointer(dialogue.getChoices()[i]);
+                    Conversation conversation = player.getCurrentConversation();
+                    if (pointer.equals(Dialogue.EXIT_POINTER))
+                        player.openDialogue(null, null);
+                    else
+                        player.openDialogue(conversation, conversation.getDialogue(pointer));
+                    Syllesia.getInstance().getLogger().debug("Option " + (i + 1) + " clicked.");
+                    return;
+                }
+                currentY += tbStep + oStep;
+            }
+            return;
+        }
+        // World Interaction
         switch (event.getButton()) {
             case MouseEvent.BUTTON1:
-                Player player = Syllesia.getInstance().getPlatform().getMainPlayer();
                 Location target = player.getTargetLocation(3);
                 if (target == null)
                     return;
@@ -278,9 +328,8 @@ public class Camera implements KeyListener, MouseListener {
                 // Middle Click, no needed functionality at this time.
                 break;
             case MouseEvent.BUTTON3:
-                Player mainPlayer = Syllesia.getInstance().getPlatform().getMainPlayer();
                 type = shift ? PlayerInteractEvent.ClickType.SHIFT_RIGHT : PlayerInteractEvent.ClickType.RIGHT;
-                PlayerInteractEvent newEvent = new PlayerInteractEvent(mainPlayer, mainPlayer.getTargetLocation(3), type);
+                PlayerInteractEvent newEvent = new PlayerInteractEvent(player, player.getTargetLocation(3), type);
                 Syllesia.getInstance().getEventBus().callEvent(newEvent);
                 if (newEvent.isPrevented())
                     return;
@@ -293,16 +342,20 @@ public class Camera implements KeyListener, MouseListener {
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {
+    }
 
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+    }
 
     @Override
-    public void mouseEntered(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e) {
+    }
 
     @Override
-    public void mouseExited(MouseEvent e) {}
+    public void mouseExited(MouseEvent e) {
+    }
 
     /**
      * Class to store the result of a target block raycast.
@@ -312,9 +365,9 @@ public class Camera implements KeyListener, MouseListener {
         /**
          * Creates a new raycast result with the given options.
          *
-         * @param x the x location.
-         * @param y the y location.
-         * @param map the map of this location.
+         * @param x        the x location.
+         * @param y        the y location.
+         * @param map      the map of this location.
          * @param distance the distance between the camera and this location.
          */
         public Result(double x, double y, Map map, double distance) {

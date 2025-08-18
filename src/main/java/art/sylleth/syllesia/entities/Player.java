@@ -2,6 +2,9 @@ package art.sylleth.syllesia.entities;
 
 import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.api.configs.Userdata;
+import art.sylleth.syllesia.api.conversation.Conversation;
+import art.sylleth.syllesia.api.conversation.Dialogue;
+import art.sylleth.syllesia.api.world.Block;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.files.json.JSONSerializable;
@@ -29,6 +32,8 @@ public class Player {
     private final Pair<String, Double> title = new Pair<>(null, null);
     private boolean typing;
     private final StringBuilder chat = new StringBuilder();
+    private Conversation conversation;
+    private Dialogue openDialogue;
 
     /**
      * Creates a new player object with the given details.
@@ -114,6 +119,17 @@ public class Player {
     }
 
     /**
+     * Gets the target block of this player.
+     *
+     * @return this players target block.
+     */
+    @NotNull
+    public Block getTargetBlock() {
+        Camera.Result result = this.camera.getTarget();
+        return result.getMap().getBlockAt(result);
+    }
+
+    /**
      * Gets the target location of this player.
      *
      * @param maxDistance the max distance of the block.
@@ -131,7 +147,7 @@ public class Player {
      * @param amount the amount of coins to give the player.
      */
     public void addCoins(double amount) {
-        this.userdata.setCoins(this.getCoins() + amount);
+        this.userdata.setCoins(Math.max(0, this.getCoins() + amount));
     }
 
     /**
@@ -264,6 +280,14 @@ public class Player {
     }
 
     /**
+     * Deletes the last typed character in this chat.
+     */
+    public void deleteLast() {
+        if (!this.chat.isEmpty())
+            this.chat.setLength(this.chat.length() - 1);
+    }
+
+    /**
      * Gets the current chat bar.
      *
      * @return the chat bar of this player.
@@ -277,6 +301,42 @@ public class Player {
      */
     public void clearChat() {
         this.chat.setLength(0);
+    }
+
+    /**
+     * Gets the conversation this player is currently having.
+     * @return
+     */
+    @Nullable
+    public Conversation getCurrentConversation() {
+        return this.conversation;
+    }
+
+    /**
+     * Gets the dialogue this player has open, or null if none open.
+     *
+     * @return the current dialogue of this player.
+     */
+    @Nullable
+    public Dialogue getOpenDialogue() {
+        return this.openDialogue;
+    }
+
+    /**
+     * Opens the given dialogue for the player.
+     * If a dialogue should be closed, you can pass null to this method.
+     *
+     * @param conversation the conversation this dialogue belongs too.
+     * @param dialogue the dialogue to open.
+     */
+    public void openDialogue(@Nullable Conversation conversation, @Nullable Dialogue dialogue) {
+        if (conversation != null && dialogue != null && !conversation.contains(dialogue))
+            throw new IllegalArgumentException("Dialogue provided is not in the given Conversation.");
+        else if ((conversation == null && dialogue == null) || (conversation != null && dialogue != null)) {
+            this.conversation = conversation;
+            this.openDialogue = dialogue;
+        } else
+            throw new IllegalArgumentException("Conversation and Dialogue must either both have a value, or both be null.");
     }
 
 }

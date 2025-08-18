@@ -1,4 +1,4 @@
-package art.sylleth.syllesia.handlers.event;
+package art.sylleth.syllesia.event;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,4 +10,4 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Handler {}
+public @interface Listener {}

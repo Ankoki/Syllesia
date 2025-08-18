@@ -1,6 +1,9 @@
-package art.sylleth.syllesia.handlers.event;
+package art.sylleth.syllesia.handlers;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.event.Event;
+import art.sylleth.syllesia.event.EventManager;
+import art.sylleth.syllesia.event.Listener;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -9,11 +12,11 @@ import java.util.List;
 /**
  * The main handler for events for this program.<br>
  * The usage of this bus is quite simple, and can be done with minimal effort from users.<br>
- * You must create a class which implements {@link EventHandler}, and create a method<br>
+ * You must create a class which implements {@link EventManager}, and create a method<br>
  * which takes in a parameter of the {@link Event} you would like to listen too,<br>
- * and be annotated with {@link Handler}. These methods shouldn't be static, but may be<br>
+ * and be annotated with {@link Listener}. These methods shouldn't be static, but may be<br>
  * private, protected or public. An example usage has been provided below.<br>
- * <code>public class SyllesiaHandler implements EventHandler {</code><br>
+ * <code>public class SyllesiaHandler implements EventManager {</code><br>
  * <code>    @Handler </code><br>
  * <code>    private void onInteract(PlayerInteractEvent event) { </code><br>
  * <code>        Player player = event.getPlayer(); </code><br>
@@ -23,44 +26,44 @@ import java.util.List;
  * <code>    } </code><br>
  * <code>} </code><br>
  */
-public class EventBus {
+public class EventHandler {
 
-    private final List<EventHandler> handlers = new ArrayList<>();
+    private final List<EventManager> managers = new ArrayList<>();
     private final List<Class<? extends Event>> registered = new ArrayList<>();
 
     /**
      * Creates a new event bus instance to track all registered listeners.
      */
-    public EventBus() {}
+    public EventHandler() {}
 
     /**
-     * Registers the given handlers to the event bus.
+     * Registers the given managers to the event bus.
      *
-     * @param handlers the handlers to register.
+     * @param managers the managers to register.
      */
-    public void registerHandlers(EventHandler... handlers) {
-        for (EventHandler handler : handlers) {
-            for (Method method : this.getHandlerMethods(handler))
+    public void registerHandlers(EventManager... managers) {
+        for (EventManager manager : managers) {
+            for (Method method : this.getManagerMethods(manager))
                 registered.add((Class<? extends Event>) method.getParameterTypes()[0]); // This is safe as this check is done in this#getHandlerMethods(EventHandler).
         }
-        this.handlers.addAll(List.of(handlers));
+        this.managers.addAll(List.of(managers));
     }
 
     /**
-     * Unregisters the given handlers. They may be re-registered, however they will no longer be called.
+     * Unregisters the given managers. They may be re-registered, however they will no longer be called.
      *
-     * @param handlers the handlers to unregister.
+     * @param managers the managers to unregister.
      */
-    public void unregisterHandlers(EventHandler... handlers) {
-        for (EventHandler handler : handlers) {
-            for (Method method : this.getHandlerMethods(handler))
+    public void unregisterHandlers(EventManager... managers) {
+        for (EventManager manager : managers) {
+            for (Method method : this.getManagerMethods(manager))
                 registered.remove(method.getParameterTypes()[0]);
-            this.handlers.remove(handler);
+            this.managers.remove(manager);
         }
     }
 
     /**
-     * Calls the given event to each of the registered handlers.
+     * Calls the given event to each of the registered managers.
      *
      * @param event the event to call.
      */
@@ -68,31 +71,31 @@ public class EventBus {
         if (!registered.contains(event.getClass()))
             return; // No reason to try and call an event that isn't registered.
         try {
-            for (EventHandler handler : handlers) {
-                for (Method method : this.getHandlerMethods(handler)) {
+            for (EventManager manager : this.managers) {
+                for (Method method : this.getManagerMethods(manager)) {
                     if (method.getParameterTypes()[0] == event.getClass()) {
-                        boolean before = method.canAccess(handler);
+                        boolean before = method.canAccess(manager);
                         method.setAccessible(true);
-                        method.invoke(handler, event);
+                        method.invoke(manager, event);
                         method.setAccessible(before);
                     }
                 }
             }
         } catch (ReflectiveOperationException ex) {
-            Syllesia.getInstance().getLogger().error(ex, EventBus.class, 82);
+            Syllesia.getInstance().getLogger().error(ex, EventHandler.class, 85);
         }
     }
 
     /**
-     * Gets all methods from a handler which are applicable for event calling.
+     * Gets all methods from a manager which are applicable for event calling.
      *
-     * @param handler the handler to fetch from.
-     * @return the handler methods.
+     * @param manager the manager to fetch from.
+     * @return the manager methods.
      */
-    private Method[] getHandlerMethods(EventHandler handler) {
+    private Method[] getManagerMethods(EventManager manager) {
         List<Method> methods = new ArrayList<>();
-        for (Method method : handler.getClass().getDeclaredMethods()) {
-            if (method.getAnnotation(Handler.class) != null && method.getReturnType() == Void.TYPE) {
+        for (Method method : manager.getClass().getDeclaredMethods()) {
+            if (method.getAnnotation(Listener.class) != null && method.getReturnType() == Void.TYPE) {
                 Class<?>[] parameters = method.getParameterTypes();
                 if (parameters.length == 1 && Event.class.isAssignableFrom(parameters[0]))
                     methods.add(method);

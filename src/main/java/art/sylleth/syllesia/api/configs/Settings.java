@@ -18,11 +18,13 @@ public class Settings extends ConfigurationFile {
         DEFAULTS.put("frames-per-second", "45");
         DEFAULTS.put("debug", "true");
         DEFAULTS.put("lang", "en_GB");
+        DEFAULTS.put("admin-commands", "false");
     }
 
     private int fps;
     private boolean debug;
     private String lang;
+    private boolean adminCommandsEnabled;
 
     /**
      * Creates a new Settings file.
@@ -43,6 +45,7 @@ public class Settings extends ConfigurationFile {
         this.fps = Integer.parseInt((String) data.get("frames-per-second"));
         this.debug = Boolean.parseBoolean((String) data.get("debug"));
         this.lang = (String) data.get("lang");
+        this.adminCommandsEnabled = Boolean.parseBoolean((String) data.get("admin-commands"));
     }
 
     @Override
@@ -51,6 +54,7 @@ public class Settings extends ConfigurationFile {
         map.put("frames-per-second", this.fps);
         map.put("debug", this.debug);
         map.put("lang", this.lang);
+        map.put("admin-commands", this.adminCommandsEnabled);
         this.writeFile(map);
     }
 
@@ -94,4 +98,12 @@ public class Settings extends ConfigurationFile {
         return this.lang;
     }
 
+    /**
+     * Checks if admin commands should be registered.
+     *
+     * @return true if should be enabled, else false.
+     */
+    public boolean isAdminCommandsEnabled() {
+        return this.adminCommandsEnabled;
+    }
 }

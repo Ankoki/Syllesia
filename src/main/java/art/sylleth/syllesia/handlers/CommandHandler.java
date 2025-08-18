@@ -1,7 +1,10 @@
-package art.sylleth.syllesia.api.commands;
+package art.sylleth.syllesia.handlers;
 
 import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.api.commands.ArgumentConverter;
+import art.sylleth.syllesia.api.commands.CommandHook;
 import art.sylleth.syllesia.entities.Player;
+import art.sylleth.syllesia.misc.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
@@ -11,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Class to handle registering and running commands that can be ran by the player.
+ * Class to handle registering and running commands that can be run by the player.
  */
 public class CommandHandler {
 
-    private final Map<String, Command> commands = new HashMap<String, Command>();
+    private final Map<String, Command> commands = new HashMap<>();
     private final List<ArgumentConverter<?>> converters = new ArrayList<>();
 
     /**
@@ -66,8 +69,8 @@ public class CommandHandler {
         for (Method method : object.getClass().getMethods()) {
             method.setAccessible(true);
             if (method.isAnnotationPresent(CommandHook.class) &&
-               (method.getReturnType() == void.class ||
-                method.getReturnType() == boolean.class)) {
+                    (method.getReturnType() == void.class ||
+                            method.getReturnType() == boolean.class)) {
                 CommandHook hook = method.getAnnotation(CommandHook.class);
                 if (commands.containsKey(hook.name())) {
                     allSuccess = false;
@@ -86,6 +89,8 @@ public class CommandHandler {
                             i++;
                         } else
                             skipFirst = false;
+                        boolean isPlayerFirst = types.length > 0 && types[0].isAssignableFrom(Player.class);
+                        Logger logger = Syllesia.getInstance().getLogger();
                         for (Class<?> parameter : types) {
                             if (skipFirst) {
                                 skipFirst = false;
@@ -97,14 +102,18 @@ public class CommandHandler {
                                 parameters[i] = args[i];
                             else if (!CommandHandler.this.hasConverter(parameter))
                                 parameters[i] = null;
-                            else
-                                parameters[i] = CommandHandler.this.getConverter(parameter).convert(args[i]);
+                            else {
+                                logger.debug(parameter.getName() + " has converter.");
+                                ArgumentConverter<?> converter = CommandHandler.this.getConverter(parameter);
+                                logger.debug("Converter class: " + converter.getClass().getName());
+                                logger.debug("Converter return type: " + converter.getReturnType().getName());
+                                parameters[i] = CommandHandler.this.getConverter(parameter).convert(args[isPlayerFirst ? i - 1 : i]);
+                            }
                             i++;
                         }
-                        boolean isPlayerFirst = types.length > 0 && types[0].isAssignableFrom(Player.class);
                         if (types.length > 0 &&
-                            types[types.length - 1] == String.class &&
-                            args.length > (isPlayerFirst ? types.length - 1 : types.length)) {
+                                types[types.length - 1] == String.class &&
+                                args.length > (isPlayerFirst ? types.length - 1 : types.length)) {
                             int size = args.length;
                             String[] fin = new String[size];
                             int index = 0;
@@ -119,18 +128,21 @@ public class CommandHandler {
                             String last = fin[fin.length - 1];
                             fin[fin.length - 1] = last.substring(0, last.length() - 1);
                             parameters[parameters.length - 1] = String.join("", fin);
-                            try {
-                                Object returned = method.invoke(object, parameters);
-                                return returned instanceof Boolean bool ? bool : true;
-                            } catch (ReflectiveOperationException ex) {
-                                Syllesia.getInstance().getLogger().error(ex, CommandHandler.class, 106);
-                                return false;
-                            }
                         }
-                        return true;
+                        try {
+                            logger.debug("Executing command: " + hook.name(), "Parameters:");
+                            for (Object parameter : parameters)
+                                logger.debug("\t" + parameter);
+                            Object returned = method.invoke(object, parameters);
+                            return returned instanceof Boolean bool ? bool : true;
+                        } catch (ReflectiveOperationException ex) {
+                            Syllesia.getInstance().getLogger().error(ex, CommandHandler.class, 106);
+                            return false;
+                        }
                     }
+
                 };
-                this.commands.put(hook.name(), command);
+                this.commands.put(hook.name().toLowerCase(), command);
             }
         }
         return allSuccess;
@@ -140,14 +152,14 @@ public class CommandHandler {
      * Runs a command with the given name and arguments.
      *
      * @param player the player running the command.
-     * @param name the name of the command.
-     * @param args the arguments of the command.
+     * @param name   the name of the command.
+     * @param args   the arguments of the command.
      * @return true if successful, else false. If command is not found, this will also return false.
      */
     public boolean runCommand(Player player, String name, String[] args) {
-        if (!this.commands.containsKey(name))
+        if (!this.commands.containsKey(name.toLowerCase()))
             return false;
-        return this.commands.get(name).runCommand(player, args);
+        return this.commands.get(name.toLowerCase()).runCommand(player, args);
     }
 
     /**

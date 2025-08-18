@@ -17,6 +17,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class ConfigurationFile {
 
+    // IDs used for internal file managers.
+    public static final String SETTINGS = "GAME_SETTINGS";
+    public static final String LANG = "GAME_LANGUAGE";
+    public static final String USERDATA = "USERDATA";
+    public static final String MAPDATA = "MAPDATA";
+
     private static final Map<String, ConfigurationFile> configurations = new ConcurrentHashMap<>();
 
     /**
@@ -50,11 +56,6 @@ public abstract class ConfigurationFile {
         JSON;
     }
 
-    // IDs used for internal file managers.
-    public static final String SETTINGS = "GAME_SETTINGS";
-    public static final String LANG = "GAME_LANGUAGE";
-    public static final String USERDATA = "USERDATA";
-
     private final File root;
     private final FileType type;
 
@@ -72,7 +73,7 @@ public abstract class ConfigurationFile {
                 root.createNewFile();
                 this.applyDefaults();
             } catch (IOException ex) {
-                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 75);
+                Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 76);
             }
         }
         if (read)
@@ -176,7 +177,7 @@ public abstract class ConfigurationFile {
             Syllesia.getInstance().getLogger().debug("fin[" + fin + "]");
             writer.write(fin);
         } catch (IOException ex) {
-            Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 144);
+            Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 180);
         }
     }
 
@@ -196,7 +197,7 @@ public abstract class ConfigurationFile {
                     }
                     this.processData(pairs);
                 } catch (IOException ex) {
-                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 165);
+                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 200);
                 }
                 break;
             case JSON:
@@ -204,7 +205,7 @@ public abstract class ConfigurationFile {
                     JSON json = new JSON(this.root);
                     this.processData(json);
                 } catch (IOException | MalformedJsonException ex) {
-                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 173);
+                    Syllesia.getInstance().getLogger().error(ex, ConfigurationFile.class, 208);
                 }
                 break;
         }

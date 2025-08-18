@@ -67,6 +67,7 @@ public class Texture {
         return textures[id];
     }
 
+    private BufferedImage image;
     private final String file;
     private final int size;
     private final int[] pixels;
@@ -94,10 +95,21 @@ public class Texture {
      * Assigns each pixel in the {@link Texture#pixels} field to the correct RGB value.
      */
     private void assignPixels() {
-        BufferedImage image = Misc.getResourceImage(file);
+        this.image = Misc.getResourceImage(file);
         int width = image.getWidth();
         int height = image.getHeight();
         image.getRGB(0, 0, width, height, pixels, 0, width);
+    }
+
+    /**
+     * Gets the buffered image of this texture.
+     * If this texture is {@link Texture#AIR}, returns null.
+     *
+     * @return the image of this texture.
+     */
+    @Nullable
+    public BufferedImage getImage() {
+        return this.image;
     }
 
     /**

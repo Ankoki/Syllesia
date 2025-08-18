@@ -1,5 +1,6 @@
 package art.sylleth.syllesia.files.json;
 
+import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.misc.Pair;
 import art.sylleth.syllesia.misc.StringUtils;
 
@@ -9,6 +10,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Class to handle the serialization and deserialization of JSON objects.
@@ -22,6 +24,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
     private static final Pattern KEY_VALUE_PATTERN = Pattern.compile("\"(.+)?\":[ ]?(.+)");
 
     // <editor-fold defaultstate="collapsed" desc="External Static Methods">
+
     /**
      * Converts a given Map to a JSON String.
      *
@@ -36,6 +39,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Internal Static Methods">
+
     /**
      * <strong>INTERNAL USE ONLY</strong>
      * <p>
@@ -69,7 +73,8 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
         if (value.endsWith("}")) value = StringUtils.replaceLast(value, "}", "");
         value = StringUtils.unescape(value);
         if (value.startsWith("\"")) {
-            if (!value.endsWith("\"")) throw new MalformedJsonException("Quote found with no closing quote. Malformed value: '" + value + "'");
+            if (!value.endsWith("\""))
+                throw new MalformedJsonException("Quote found with no closing quote. Malformed value: '" + value + "'");
             value = value.replaceFirst("\"", "");
             StringBuilder builder = new StringBuilder(value);
             builder.setLength(builder.length() - 1);
@@ -78,16 +83,20 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
         }
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         try {
             return Long.parseLong(value);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         try {
             return Double.parseDouble(value);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         try {
             return Float.parseFloat(value);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         if (value.equalsIgnoreCase("TRUE")) return true;
         if (value.equalsIgnoreCase("FALSE")) return false;
         if (value.equalsIgnoreCase("NULL")) return null;
@@ -99,7 +108,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
      * <p>
      * Gets a pair with the key of a map and the parsed map.
      *
-     * @param line the line of map, including ones that are contained.
+     * @param line     the line of map, including ones that are contained.
      * @param fullJson true if it is the whole json, false if it is a map.
      * @return a pair containing the map key and the map contents.
      * @throws MalformedJsonException if the JSON is malformed.
@@ -121,7 +130,8 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
 
         StringBuilder currentLine = new StringBuilder();
         String currentKey = "";
-        List<Object> currentList = new ArrayList<>();
+        List<Object> currentList = new LinkedList<>();
+        List<Object> deepList = new LinkedList<>();
 
         final char[] array = line.toCharArray();
 
@@ -145,31 +155,35 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                         inQuotes = false;
                     } else if (!inQuotes) {
                         inQuotes = true;
-                        currentLine
-                                .append(ch);
+                        currentLine.append(ch);
                     } else currentLine.append(ch);
                     break;
 
                 case ':':
-                    if (!inQuotes && !inMap && inArray) throw new MalformedJsonException("Colon found in an array outside of quotes.");
+                    if (!inQuotes && !inMap && inArray)
+                        throw new MalformedJsonException("Colon found in an array outside of quotes.");
                     currentLine.append(ch);
                     break;
 
                 case ',':
-                    if (inQuotes) currentLine.append(ch);
+                    if (inQuotes)
+                        currentLine.append(ch);
                         // Earliest , can be is at "{\"\"," (index 3)
-                    else if (index < 3) throw new MalformedJsonException();
-
+                    else if (index < 3)
+                        throw new MalformedJsonException();
                     else if (inArray) {
-                        if (inMap) {
+                        if (inMap)
                             currentLine.append(ch);
-                        } else if (currentLine.length() > 0) {
-                            currentList.add(StringUtils.removeQuotes(currentLine.toString()));
+                        else if (!currentLine.isEmpty() && arrayDepth == 0) {
+                            currentList.add(JSON.parseValue(StringUtils.removeQuotes(currentLine.toString())));
+                            currentLine.setLength(0);
+                        } else if (!currentLine.isEmpty() && arrayDepth > 0) {
+                            deepList.add(JSON.parseValue(StringUtils.removeQuotes(currentLine.toString())));
                             currentLine.setLength(0);
                         }
-                    } else if (inMap) currentLine.append(ch);
-
-                    else if (currentLine.length() > 0) {
+                    } else if (inMap)
+                        currentLine.append(ch);
+                    else if (!currentLine.isEmpty()) {
                         Pair<String, Object> pair = JSON.matchLine(currentLine.toString());
                         currentMap.put(pair.getFirst(), pair.getSecond());
                         currentLine.setLength(0);
@@ -177,36 +191,48 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                     break;
 
                 case '[':
-                    if (!inQuotes && inArray) throw new MalformedJsonException("Opening array found inside of an array.");
-                    if (inQuotes) {
+                    if (inQuotes)
                         currentLine.append(ch);
-                    } else if (inArray) {
+                    else if (inArray)
                         arrayDepth++;
-                    } else {
+                    else {
                         inArray = true;
                         Matcher matcher = KEY_PATTERN.matcher(currentLine.toString());
-                        if (matcher.matches()) currentKey = matcher.group(1);
-                        else throw new MalformedJsonException();
+                        if (matcher.matches())
+                            currentKey = matcher.group(1);
+                        else
+                            throw new MalformedJsonException();
                         currentLine.setLength(0);
                     }
                     break;
 
                 case ']':
-                    if (!inQuotes && !inArray) throw new MalformedJsonException("Closing array found outside of an array.");
+                    if (!inQuotes && !inArray)
+                        throw new MalformedJsonException("Closing array found outside of an array.");
                     if (!inQuotes) {
                         if (arrayDepth == 0) {
-                            if (currentLine.toString().equals("[]")) currentMap.put(currentKey, new ArrayList<>());
+                            if (currentLine.toString().equals("[]"))
+                                currentMap.put(currentKey, new ArrayList<>());
                             else {
-                                currentList.add(StringUtils.removeQuotes(currentLine.toString()));
+                                if (currentLine.toString().equals("\"\""))
+                                    currentList.add("");
+                                else
+                                    currentList.add(JSON.parseValue(StringUtils.removeQuotes(currentLine.toString())));
                                 currentMap.put(currentKey, currentList);
                             }
                             inArray = false;
-                            currentList = new ArrayList<>();
+                            currentList = new LinkedList<>();
                             currentKey = "";
                             currentLine.setLength(0);
                             ignoreNext = true;
-                        } else arrayDepth--;
-                    } else currentLine.append(ch);
+                        } else {
+                            deepList.add(JSON.parseValue(StringUtils.removeQuotes(currentLine.toString())));
+                            currentList.add(deepList);
+                            deepList = new LinkedList<>();
+                            arrayDepth--;
+                        }
+                    } else
+                        currentLine.append(ch);
                     break;
 
                 case '{':
@@ -232,8 +258,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                                             fin = JSONSerializable.deserializeHelper(serializable, map);
                                     }
                                     currentList.add(fin);
-                                }
-                                else {
+                                } else {
                                     String temp = currentLine.toString().split(":\\{")[0];
                                     String k = StringUtils.removeQuotes(temp);
                                     String l = currentLine.toString().replaceFirst("\"" + k + "\":", "");
@@ -249,7 +274,8 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                                 }
                                 currentLine.setLength(0);
                                 inMap = false;
-                            } else if (mapDepth < 0) throw new MalformedJsonException("Closing map found outside of a map.");
+                            } else if (mapDepth < 0)
+                                throw new MalformedJsonException("Closing map found outside of a map.");
 
                         } else if (currentLine.length() != 1) {
                             if (index + 1 != array.length) throw new MalformedJsonException();
@@ -273,6 +299,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Constructors">
+
     /**
      * Creates a new JSONWrapper object.
      */
@@ -307,13 +334,15 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
      * @throws MalformedJsonException thrown if there is an issue with the JSON.
      */
     public JSON(String json) throws MalformedJsonException {
-        if (!json.startsWith("{") && !json.endsWith("}")) throw new MalformedJsonException("JSON must start with { and end with }.");
+        if (!json.startsWith("{") && !json.endsWith("}"))
+            throw new MalformedJsonException("JSON must start with { and end with }.");
         Pair<String, Map<String, Object>> pair = JSON.parseMap(json, true);
         this.putAll(pair.getSecond());
     }
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Basic Public Methods">
+
     /**
      * Converts the current JSONWrapper to a JSON text.
      *
@@ -377,6 +406,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
         // </editor-fold>
 
         // <editor-fold defaultstate="collapsed" desc="Internal Object Methods">
+
         /**
          * <strong>INTERNAL USE ONLY</strong>
          * <p>
@@ -395,12 +425,11 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                 Map<String, Object> map = serializable.serialize();
                 map.put("-x", serializable.getClass().getName());
                 builder.append(this.writeJson(map, pretty));
-            }
-            else if (value instanceof Boolean bool) builder.append(bool);
+            } else if (value instanceof Boolean bool) builder.append(bool);
             else if (value instanceof List list) builder.append(this.writeJson(list, pretty));
             else if (value instanceof Object[] array) builder.append(this.writeJson(array, pretty));
             else if (value instanceof Map map) builder.append(this.writeJson(map, pretty));
-            else if (value instanceof Pair<?,?> pair) builder.append(this.writeJson((Map) pair.getSecond(), pretty));
+            else if (value instanceof Pair<?, ?> pair) builder.append(this.writeJson((Map) pair.getSecond(), pretty));
             else if (value == null) builder.append(pretty ? " null" : "null");
             else builder.append("\"")
                         .append(StringUtils.escape(value))

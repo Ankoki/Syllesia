@@ -2,12 +2,15 @@ package art.sylleth.syllesia.platform.game;
 
 import art.sylleth.syllesia.Syllesia;
 import art.sylleth.syllesia.api.configs.Settings;
+import art.sylleth.syllesia.api.conversation.Dialogue;
+import art.sylleth.syllesia.api.events.PlayerJoinEvent;
 import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.misc.Misc;
 import art.sylleth.syllesia.api.world.Location;
 import art.sylleth.syllesia.misc.Pair;
 import art.sylleth.syllesia.platform.screen.Screen;
+import art.sylleth.syllesia.platform.textures.Texture;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -17,6 +20,8 @@ import java.awt.event.WindowListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main class for controlling the main platform of this game.
@@ -34,24 +39,9 @@ public class Platform extends JFrame implements Runnable {
     private final Camera camera;
     private final Screen screen;
     private final Canvas game = new Canvas();
-    private final JLayeredPane pane = this.getLayeredPane();
 
-    // Overlay components.
-    private final BufferedImage coinIcon = Misc.getResourceImage("textures/icons/coin.png");
-
-    private final JLabel location = new JLabel();
-    private final JLabel coins = new JLabel();
-    private final JPanel map = new JPanel();
-
-    // Debug panel components.
-    private JPanel debugPanel;
-    private JLabel coords,
-            xCoord,
-            yCoord,
-            xDir,
-            yDir,
-            xPlane,
-            yPlane;
+    private final BufferedImage coinIcon = Misc.getResourceImage("game/icons/coin.png");
+    private final BufferedImage dialogue = Misc.getResourceImage("game/misc/dialogue.png");
 
     /**
      * Creates and launches a new platform for Syllesia to run on.
@@ -62,11 +52,11 @@ public class Platform extends JFrame implements Runnable {
         this.pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         this.player = player;
         this.camera = this.player.getCamera();
-        this.screen = new Screen(this.player.getLocation().getMap().getMatrix(), SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.screen = new Screen(SCREEN_WIDTH, SCREEN_HEIGHT);
         this.game.setBounds(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         this.game.addKeyListener(this.camera);
         this.game.addMouseListener(this.camera);
-        this.pane.add(game, JLayeredPane.DEFAULT_LAYER);
+        this.getLayeredPane().add(game, JLayeredPane.DEFAULT_LAYER);
         this.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         this.setLayout(null);
         this.setResizable(false);
@@ -79,7 +69,7 @@ public class Platform extends JFrame implements Runnable {
             @Override
             public void windowClosing(WindowEvent event) {
                 Syllesia.getInstance().getLogger().debug("WindowClosingEvent fired. Saving Configurations.");
-                for (String id : new String[]{ConfigurationFile.USERDATA, ConfigurationFile.SETTINGS/*, ConfigurationFile.LANG*/}) { // TODO lang file.
+                for (String id : new String[]{ConfigurationFile.USERDATA, ConfigurationFile.SETTINGS, ConfigurationFile.MAPDATA/*, ConfigurationFile.LANG*/}) { // TODO lang file.
                     Syllesia.getInstance().getLogger().debug("Saving configuration file " + id + ".");
                     ConfigurationFile file = Syllesia.getInstance().getConfiguration(id);
                     file.writeData();
@@ -103,124 +93,16 @@ public class Platform extends JFrame implements Runnable {
             @Override
             public void windowDeactivated(WindowEvent event) {}
         });
-        this.setBackground(Color.BLUE);
-        // this.setupOverlay();
-        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
-        if (settings.isDebug())
-            this.initiateDebug();
+        this.setBackground(Color.BLACK);
         this.setVisible(true);
+        this.game.requestFocus();
         this.start();
+        Syllesia.getInstance().getEventBus().callEvent(new PlayerJoinEvent(player));
     }
 
     /**
-     * Initiates the debug method. Allows us to see the game options easier.
-     */
-    private void initiateDebug() {
-        Syllesia.getInstance().getLogger().debug("Enabling debug screen.");
-        Location location = this.camera.getLocation();
-        this.coords = new JLabel("Location: " + location.stringify());
-        this.xCoord = new JLabel("X: " + Misc.toNPoints(location.getX(), 3));
-        this.yCoord = new JLabel("Y: " + Misc.toNPoints(location.getY(), 3));
-        this.xDir = new JLabel("XDir: " + Misc.toNPoints(location.getXDir(), 3));
-        this.yDir = new JLabel("YDir: " + Misc.toNPoints(location.getYDir(), 3));
-        this.xPlane = new JLabel("XPln: " + Misc.toNPoints(location.getXPlane(), 3));
-        this.yPlane = new JLabel("YPln: " + Misc.toNPoints(location.getYPlane(), 3));
-        this.coords.setBounds(0, 0, 215, 20);
-        this.xCoord.setBounds(0, 25, 150, 20);
-        this.yCoord.setBounds(0, 50, 150, 20);
-        this.xDir.setBounds(0, 75, 150, 20);
-        this.yDir.setBounds(0, 100, 150, 20);
-        this.xPlane.setBounds(0, 125, 150, 20);
-        this.yPlane.setBounds(0, 150, 150, 20);
-        this.coords.setForeground(Color.DARK_GRAY);
-        this.xCoord.setForeground(Color.DARK_GRAY);
-        this.yCoord.setForeground(Color.DARK_GRAY);
-        this.xDir.setForeground(Color.DARK_GRAY);
-        this.yDir.setForeground(Color.DARK_GRAY);
-        this.xPlane.setForeground(Color.DARK_GRAY);
-        this.yPlane.setForeground(Color.DARK_GRAY);
-        this.debugPanel = new JPanel();
-        this.debugPanel.setLayout(null);
-        this.debugPanel.setBounds(0, 0, 215, 175);
-        this.debugPanel.add(coords);
-        this.debugPanel.add(xCoord);
-        this.debugPanel.add(yCoord);
-        this.debugPanel.add(xDir);
-        this.debugPanel.add(yDir);
-        this.debugPanel.add(xPlane);
-        this.debugPanel.add(yPlane);
-        this.debugPanel.setDoubleBuffered(true);
-        this.debugPanel.setBackground(Color.orange);
-        this.pane.add(debugPanel, JLayeredPane.PALETTE_LAYER);
-    }
-
-    /**
-     * Sets up the games overlay.
-     */
-    private void setupOverlay() {
-        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
-        if (!settings.isDebug()) {
-            // Location, if debug is enabled then there will be a more in depth location shown.
-            this.location.setBounds(0, 0, 215, 50);
-            this.location.setText(this.player.getLocation().stringify());
-            this.pane.add(this.location, JLayeredPane.PALETTE_LAYER);
-        }
-        // Coin Counter
-        this.coins.setBounds(SCREEN_WIDTH - 100, SCREEN_HEIGHT - 75, 100, 50);
-        ImageIcon coinIcon = new ImageIcon(Misc.getResourceImage("textures/icons/coin.png"));
-        this.coins.setIcon(coinIcon);
-        this.coins.setIconTextGap(10);
-        this.coins.setText(this.player.getCoins() + "");
-        this.coins.setOpaque(false);
-        this.pane.add(this.coins, JLayeredPane.PALETTE_LAYER);
-        // Map TODO
-        GridLayout gridLayout = new GridLayout(5, 5);
-        this.map.setLayout(gridLayout);
-        Location location = this.player.getLocation();
-        int x = (int) location.getX();
-        int y = (int) location.getY();
-        int startX = x - 2;
-        int startY = y - 2;
-        for (int i = 0; i < 5; i++) {
-
-        }
-        /*
-        0 0 0 0 0
-        0 0 0 0 0
-        0 0 X 0 0
-        0 0 0 0 0
-        0 0 0 0 0
-         */
-        // Quest Toast TODO
-    }
-
-    /**
-     * Updates the overlay components.
-     */
-    private void updateOverlay() {
-        this.location.setText(this.player.getLocation().stringify());
-        this.coins.setText(this.player.getCoins() + "");
-    }
-
-    /**
-     * Updates the debug menu. If debug is disabled, nothing will happen.
-     */
-    private void updateDebug() {
-        Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
-        if (!settings.isDebug())
-            return;
-        Location location = this.camera.getLocation();
-        this.coords.setText("Location: " + location.stringify());
-        this.xCoord.setText("X: " + Misc.toNPoints(location.getX(), 3));
-        this.yCoord.setText("Y: " + Misc.toNPoints(location.getY(), 3));
-        this.xDir.setText("XDir: " + Misc.toNPoints(location.getXDir(), 3));
-        this.yDir.setText("YDir: " + Misc.toNPoints(location.getYDir(), 3));
-        this.xPlane.setText("XPln: " + Misc.toNPoints(location.getXPlane(), 3));
-        this.yPlane.setText("YPln: " + Misc.toNPoints(location.getYPlane(), 3));
-    }
-
-    /**
-     * Draws the current image onto the screen, as well as the overlay
+     * Draws the current image onto the screen, as well as the overlay.
+     * TODO split this into different draw methods to reduce bulk.
      */
     public void render() {
         BufferStrategy buffer = this.game.getBufferStrategy();
@@ -228,6 +110,7 @@ public class Platform extends JFrame implements Runnable {
             this.game.createBufferStrategy(3);
         else {
             Graphics graphics = buffer.getDrawGraphics();
+            // Game
             graphics.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
             // Coin Counter
             graphics.drawImage(this.coinIcon, SCREEN_WIDTH - 125, SCREEN_HEIGHT - 100, null);
@@ -253,8 +136,118 @@ public class Platform extends JFrame implements Runnable {
                 graphics.setColor(colour);
                 graphics.fillRect(0, SCREEN_HEIGHT - 58, SCREEN_WIDTH - 100, 30);
                 graphics.setColor(Color.WHITE);
-                graphics.setFont(new Font("monospaced", Font.PLAIN, 20));
-                graphics.drawString(player.getChat(), 5, SCREEN_HEIGHT - 38);
+                Font font = new Font("monospaced", Font.PLAIN, 20);
+                graphics.setFont(font);
+                FontMetrics metrics = graphics.getFontMetrics(font);
+                graphics.setFont(font);
+                int maxLength = 600;
+                StringBuilder builder = new StringBuilder();
+                String[] splitChat = player.getChat().split("");
+                for (String c : splitChat) {
+                    builder.insert(0, c);
+                    if (metrics.stringWidth(builder.toString()) > maxLength)
+                        builder.setLength(builder.length() - 1); // Since the input is reversed, removing the first characters conforms the builder to the bar length.
+                }
+                builder.reverse();
+                graphics.drawString(builder.toString(), 5, SCREEN_HEIGHT - 38);
+            }
+            // Map
+            Location location = player.getLocation();
+            int xStart = (int) location.getX() - 2;
+            int xEnd = (int) location.getX() + 2;
+            int yStart = (int) location.getY() - 2;
+            int yEnd = (int) location.getY() + 2;
+            graphics.setColor(Misc.fromHex("#543732"));
+            int MAP_WIDTH = 100;
+            int MAP_HEIGHT = 100;
+            int block = MAP_WIDTH / 5; // These are squares.
+            int pointer = block / 4;
+            graphics.fillRect(SCREEN_WIDTH - 100, 0, MAP_WIDTH, MAP_HEIGHT);
+            int xOffset = 0;
+            for (int x = xStart; x <= xEnd; x++) {
+                int yOffset = 0;
+                for (int y = yStart; y <= yEnd; y++) {
+                    Texture texture;
+                    try {
+                        texture = Texture.fromId(location.getMap().getMatrix()[x][y]);
+                    } catch (ArrayIndexOutOfBoundsException ignored) {
+                        texture = null;
+                    }
+                    if (texture == null) {
+                        graphics.setColor(Misc.fromHex("#0b0b0b"));
+                        graphics.fillRect(SCREEN_WIDTH - MAP_WIDTH + xOffset, yOffset, block, block);
+                    } else if (texture.getId() == 0) { // Air
+                        graphics.setColor(Misc.fromHex("704F38"));
+                        graphics.fillRect(SCREEN_WIDTH - MAP_WIDTH + xOffset, yOffset, block, block);
+                    } else
+                        graphics.drawImage(texture.getImage(), SCREEN_WIDTH - MAP_WIDTH + xOffset, yOffset, block, block, null);
+                    if (x == (int) location.getX() && y == (int) location.getY()) {
+                        graphics.setColor(Color.RED);
+                        graphics.fillOval(SCREEN_WIDTH - MAP_WIDTH + xOffset + (block / 2) - (pointer / 2), yOffset + (block / 2) - (pointer / 2), pointer, pointer);
+                    }
+                    yOffset += 20;
+                }
+                xOffset += 20;
+            }
+            // Cursor
+            graphics.setColor(Color.RED);
+            graphics.fillOval(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 5, 5);
+            // Location
+            Settings settings = (Settings) Syllesia.getInstance().getConfiguration(ConfigurationFile.SETTINGS);
+            graphics.setFont(new Font("monospaced", Font.PLAIN, 10));
+            graphics.setColor(Color.WHITE);
+            graphics.drawString("[" + Misc.toNPoints(location.getX(), 3) + ", " + Misc.toNPoints(location.getY(), 3) + "]", 5, 15);
+            if (settings.isDebug()) {
+                graphics.drawString("D[" + Misc.toNPoints(location.getXDir(), 3) + ", " + Misc.toNPoints(location.getYDir(), 3) + "]", 5, 25);
+                graphics.drawString("P[" + Misc.toNPoints(location.getXPlane(), 3) + ", " + Misc.toNPoints(location.getYPlane(), 3) + "]", 5, 35);
+            }
+            // Conversation Display.
+            Dialogue dialogue = this.player.getOpenDialogue();
+            if (dialogue != null) {
+                if (!dialogue.isValid())
+                    player.openDialogue(null, null); // Don't continue trying to draw an invalid dialogue.
+                else {
+                    // Dialogue Background
+                    Color shadow = new Color(84, 84, 84, 220);
+                    graphics.setColor(shadow);
+                    graphics.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT); // Darkens the game behind the open dialogue.
+                    graphics.drawImage(this.dialogue, 150, 20, null);
+                    // Title
+                    graphics.setColor(Color.WHITE);
+                    graphics.setFont(new Font("monospaced", Font.BOLD, 20));
+                    String dTitle = dialogue.getTitle();
+                    if (dTitle != null)
+                        graphics.drawString(dTitle, 180, 45);
+                    // Content
+                    graphics.setColor(Color.LIGHT_GRAY);
+                    Font font = new Font("monospaced", Font.PLAIN, 12);
+                    graphics.setFont(font);
+                    FontMetrics metrics = graphics.getFontMetrics(font);
+                    int lineLength = 326;
+                    List<String> lines = new ArrayList<>();
+                    StringBuilder lineBuilder = new StringBuilder();
+                    for (String c : dialogue.getContent().split("")) {
+                        lineBuilder.append(c);
+                        if (metrics.stringWidth(lineBuilder.toString()) > lineLength) {
+                            lines.add(lineBuilder.toString());
+                            lineBuilder.setLength(0);
+                        }
+                    }
+                    if (!lineBuilder.isEmpty())
+                        lines.add(lineBuilder.toString());
+                    int yMod = 0;
+                    for (String line : lines) {
+                        graphics.drawString(line, 190, 75 + yMod);
+                        yMod += 20;
+                    }
+                    // Options
+                    String[] choices = dialogue.getChoices();
+                    yMod = 0;
+                    for (String choice : choices) {
+                        graphics.drawString(choice, 192, 318 + yMod);
+                        yMod += 31;
+                    }
+                }
             }
             graphics.dispose();
             buffer.show();
@@ -274,8 +267,6 @@ public class Platform extends JFrame implements Runnable {
             while (delta >= 1) {
                 this.screen.update(this.player.getCamera(), this.pixels);
                 this.camera.update(player.getLocation().getMap().getMatrix());
-                this.updateOverlay();
-                this.updateDebug();
                 delta--;
             }
             this.render();
@@ -312,12 +303,12 @@ public class Platform extends JFrame implements Runnable {
     /**
      * Terminates the thread and stops the game.
      */
-    public synchronized void stop() {
+    private synchronized void stop() {
         this.active = false;
         try {
             thread.join();
         } catch (InterruptedException ex) {
-            Syllesia.getInstance().getLogger().error(ex, Platform.class, 203);
+            Syllesia.getInstance().getLogger().error(ex, Platform.class, 311);
         }
     }
 

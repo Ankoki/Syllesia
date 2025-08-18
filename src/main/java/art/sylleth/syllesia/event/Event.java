@@ -1,4 +1,4 @@
-package art.sylleth.syllesia.handlers.event;
+package art.sylleth.syllesia.event;
 
 import org.jetbrains.annotations.NotNull;
 

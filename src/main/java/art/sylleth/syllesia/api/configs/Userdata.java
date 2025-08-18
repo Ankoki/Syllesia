@@ -30,7 +30,7 @@ public class Userdata extends ConfigurationFile {
 
     private String name;
     private UUID uuid;
-    private double coins = 0;
+    private double coins;
     private Location lastLocation;
     private long lastSeen;
     private List<String> completedQuests;
@@ -66,7 +66,11 @@ public class Userdata extends ConfigurationFile {
         this.validateMap(data);
         this.name = data.get("name").toString();
         this.uuid = UUID.fromString(data.get("uuid").toString());
+        Syllesia.getInstance().getLogger().debug("Userdata#coins=" + data.get("coins"),
+                                                 "Userdata#coins#toString=" + data.get("coins").toString() +
+                                                 "parsed=" + Double.parseDouble(data.get("coins").toString()));
         this.coins = Double.parseDouble(data.get("coins").toString());
+        Syllesia.getInstance().getLogger().debug("this.coins=" + this.coins);
         this.lastLocation = (Location) data.get("last-location");
         this.lastSeen = Long.parseLong(data.get("last-seen").toString());
         this.completedQuests = new ArrayList<>();
@@ -81,7 +85,7 @@ public class Userdata extends ConfigurationFile {
         Map<String, Object> data = new HashMap<>();
         data.put("name", this.name);
         data.put("uuid", this.uuid.toString());
-        data.put("coins", player.getCoins());
+        data.put("coins", this.coins);
         data.put("last-location", player.getLocation());
         data.put("last-seen", System.currentTimeMillis());
         data.put("completed-quests", this.completedQuests);

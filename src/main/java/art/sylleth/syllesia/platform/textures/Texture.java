@@ -16,21 +16,21 @@ public class Texture {
     private static final Texture[] textures = new Texture[MAX_TEXTURES];
 
     public static final Texture AIR;
-    public static final Texture SLIME;
-    public static final Texture GRASS;
-    public static final Texture STONE_WALL;
-    public static final Texture LIGHT_METAL;
-    public static final Texture DARK_METAL;
-    public static final Texture MOLTEN_GOLD;
+    public static final Texture STONE_BRICK;
+    public static final Texture DEPLETED_GOLD_BLOCK;
+    public static final Texture MOSSY_STONE;
+    public static final Texture SILVER_SANDSTONE;
+    public static final Texture STONE_BLOCK;
+    public static final Texture GOLD_BLOCK;
 
     static {
-        AIR = Texture.registerTexture("", 64, 0);
-        SLIME = Texture.registerTexture("textures/blocks/slime.png", 64, 1);
-        GRASS = Texture.registerTexture("textures/blocks/grass.png", 64, 2);
-        STONE_WALL = Texture.registerTexture("textures/blocks/stone_wall.png", 64, 3);
-        LIGHT_METAL = Texture.registerTexture("textures/blocks/light_metal.png", 64, 4);
-        DARK_METAL = Texture.registerTexture("textures/blocks/dark_metal.png", 64, 5);
-        MOLTEN_GOLD = Texture.registerTexture("textures/blocks/molten_gold.jpg", 512, 6);
+        AIR = Texture.registerTexture("", 128, 0);
+        STONE_BRICK = Texture.registerTexture("textures/blocks/stone_brick.png", 128, 1);
+        DEPLETED_GOLD_BLOCK = Texture.registerTexture("textures/blocks/depleted_gold_block.png", 128, 2);
+        MOSSY_STONE = Texture.registerTexture("textures/blocks/mossy_stone.png", 128, 3);
+        SILVER_SANDSTONE = Texture.registerTexture("textures/blocks/silver_sandstone.png", 128, 4);
+        STONE_BLOCK = Texture.registerTexture("textures/blocks/stone_block.png", 128, 5);
+        GOLD_BLOCK = Texture.registerTexture("textures/blocks/gold_block.png", 128, 6);
     }
 
     /**

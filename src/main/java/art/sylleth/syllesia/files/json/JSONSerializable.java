@@ -58,7 +58,7 @@ public abstract class JSONSerializable {
             try {
                 return method.invoke(null, map);
             } catch (ReflectiveOperationException ex) {
-                Syllesia.getInstance().getLogger().error(ex, JSONSerializable.class, 60);
+                Syllesia.getInstance().getLogger().error(ex, JSONSerializable.class, 61);
             }
         } catch (NoSuchMethodException ex) {
             throw new IllegalStateException("'" + clazz.getPackageName() + "." + clazz.getName() + "' does not have a static deserialize(Map<String, Object>) method. This is required.");

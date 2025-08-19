@@ -317,11 +317,7 @@ public class Camera implements KeyListener, MouseListener {
                     return;
                 else {
                     Syllesia.getInstance().getLogger().debug("MouseEvent.BUTTON1[LEFT] " + playerInteractEvent.getName() + ", Location: " + playerInteractEvent.getLocation());
-                    if (target.getTexture().getId() == 6) {
-                        player.addCoins(1);
-                        player.sendTitle("You have received a coin.", Timespan.of("2 seconds"));
-                        Syllesia.getInstance().getLogger().debug("Player[" + player.getName() + "] has received a coin[" + player.getCoins() + "].");
-                    }
+                    // TODO left click functionality.
                 }
                 break;
             case MouseEvent.BUTTON2:

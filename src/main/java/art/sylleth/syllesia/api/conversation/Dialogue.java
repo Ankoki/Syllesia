@@ -1,10 +1,13 @@
 package art.sylleth.syllesia.api.conversation;
 
+import art.sylleth.syllesia.Syllesia;
+import art.sylleth.syllesia.entities.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Dialogue {
@@ -15,7 +18,7 @@ public class Dialogue {
     private final String id;
     private String title;
     private String content;
-    private final Map<String, Supplier<String>> optionPointers = new LinkedHashMap<>(); // Linked to preserve order added.
+    private final Map<String, Function<Player, String>> optionPointers = new LinkedHashMap<>(); // Linked to preserve order added.
     private boolean valid = false;
 
     /**
@@ -24,7 +27,7 @@ public class Dialogue {
      *
      * For a class to be valid, it must meet the following criteria.
      * - Content via {@link Dialogue#setContent(String)}.
-     * - A minimum of 1 option to choose from using {@link Dialogue#addChoice(String, Supplier)}
+     * - A minimum of 1 option to choose from using {@link Dialogue#addChoice(String, Function)}
      *
      * @param id the id this dialogue should have.
      */
@@ -108,7 +111,7 @@ public class Dialogue {
      * @return this dialogue, for chaining.
      */
     @NotNull
-    public Dialogue addChoice(@NotNull String response, @NotNull Supplier<String> exitEvent) {
+    public Dialogue addChoice(@NotNull String response, @NotNull Function<Player, String> exitEvent) {
         if (this.optionPointers.size() >= Dialogue.MAXIMUM_CHOICE_COUNT)
             throw new IllegalStateException("Dialogue's have a maximum of 5 choices");
         this.optionPointers.put(response, exitEvent);
@@ -125,7 +128,7 @@ public class Dialogue {
     @Nullable
     public String getPointer(@NotNull String response) {
         if (this.optionPointers.containsKey(response))
-            return this.optionPointers.get(response).get();
+            return this.optionPointers.get(response).apply(Syllesia.getInstance().getPlatform().getMainPlayer());
         return null;
     }
 

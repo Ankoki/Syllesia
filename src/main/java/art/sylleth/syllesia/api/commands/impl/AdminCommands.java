@@ -46,19 +46,19 @@ public class AdminCommands {
                         new Dialogue("TEST_GREETING")
                                 .setTitle("Greetings")
                                 .setContent("Hello " + Placeholder.of(Placeholder.PLAYER_NAME) + ", how are you doing? I'm feeling very good and super ridiculously cool in my humble opinion, i'm just adding text to test if my overflow works.")
-                                .addChoice("Where am I?", () -> "TEST_LOCATION")
-                                .addChoice("Who are you?", () -> "TEST_NAME_RESPONSE")
-                                .addChoice("I don't have time for this actually.", () -> Dialogue.EXIT_POINTER)
+                                .addChoice("Where am I?", (player) -> "TEST_LOCATION")
+                                .addChoice("Who are you?", (player) -> "TEST_NAME_RESPONSE")
+                                .addChoice("I don't have time for this actually.", (player) -> Dialogue.EXIT_POINTER)
                                 .validate(),
                         new Dialogue("TEST_LOCATION")
                                 .setTitle("Greetings")
                                 .setContent("You are in the Syllesia ruins... it got bad around here.")
-                                .addChoice("Oh... ok bye.", () -> Dialogue.EXIT_POINTER)
+                                .addChoice("Oh... ok bye.", (player) -> Dialogue.EXIT_POINTER)
                                 .validate(),
                         new Dialogue("TEST_NAME_RESPONSE")
                                 .setTitle("Greetings")
                                 .setContent("I'm the voices you hear in your head.")
-                                .addChoice("Cool!!! Always wanted to meet you, ciao.", () -> Dialogue.EXIT_POINTER)
+                                .addChoice("Cool!!! Always wanted to meet you, ciao.", (player) -> Dialogue.EXIT_POINTER)
                                 .validate()));
     }
 

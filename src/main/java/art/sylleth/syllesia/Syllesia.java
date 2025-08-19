@@ -1,12 +1,16 @@
 package art.sylleth.syllesia;
 
+import art.sylleth.syllesia.api.Defaults;
+import art.sylleth.syllesia.api.configs.Placeholder;
+import art.sylleth.syllesia.api.conversation.Conversation;
+import art.sylleth.syllesia.api.conversation.Dialogue;
+import art.sylleth.syllesia.api.quest.Quest;
 import art.sylleth.syllesia.handlers.CommandHandler;
 import art.sylleth.syllesia.api.commands.converters.*;
 import art.sylleth.syllesia.api.commands.impl.AdminCommands;
 import art.sylleth.syllesia.api.configs.Mapdata;
 import art.sylleth.syllesia.api.configs.Settings;
 import art.sylleth.syllesia.api.configs.Userdata;
-import art.sylleth.syllesia.api.quest.Quest;
 import art.sylleth.syllesia.api.world.Map;
 import art.sylleth.syllesia.entities.Player;
 import art.sylleth.syllesia.api.entities.npc.ElvenDeity;
@@ -14,8 +18,11 @@ import art.sylleth.syllesia.files.ConfigurationFile;
 import art.sylleth.syllesia.files.json.JSONSerializable;
 import art.sylleth.syllesia.handlers.ConversationHandler;
 import art.sylleth.syllesia.handlers.EventHandler;
+import art.sylleth.syllesia.handlers.QuestHandler;
+import art.sylleth.syllesia.listeners.GameListener;
 import art.sylleth.syllesia.misc.Logger;
 import art.sylleth.syllesia.api.world.Location;
+import art.sylleth.syllesia.misc.Timespan;
 import art.sylleth.syllesia.platform.game.Camera;
 import art.sylleth.syllesia.platform.game.Platform;
 import org.jetbrains.annotations.NotNull;
@@ -57,9 +64,11 @@ public class Syllesia {
         } catch (ReflectiveOperationException ignored) {}
         Syllesia.instance.setupJsonSerializable();
         Syllesia.instance.declareQuests();
+        Syllesia.instance.declareConversations();
+        Syllesia.instance.declareEvents();
         Syllesia.instance.setupConfigurations();
+        Syllesia.instance.declareCommands();
         Syllesia.instance.spawnEntities();
-        Syllesia.instance.setupCommands();
         Userdata userdata = (Userdata) Syllesia.instance.getConfiguration(ConfigurationFile.USERDATA);
         Player player = new Player(userdata.getName(), userdata.getUuid(), new Camera(userdata.getLastLocation()));
         Syllesia.instance.setPlatform(new Platform(player));
@@ -70,9 +79,9 @@ public class Syllesia {
     private final Logger logger = new Logger();
     private final List<Map> maps = new ArrayList<>();
     private final List<ConfigurationFile> configurations = new ArrayList<>();
-    private final List<Quest> quests = new ArrayList<>();
     private final CommandHandler commandHandler = new CommandHandler();
     private final ConversationHandler conversationHandler = new ConversationHandler();
+    private final QuestHandler questHandler = new QuestHandler();
     private Platform platform;
 
     /**
@@ -211,6 +220,16 @@ public class Syllesia {
     }
 
     /**
+     * Gets the quest handler of this instance.
+     *
+     * @return the quest handler.
+     */
+    @NotNull
+    public QuestHandler getQuestHandler() {
+        return this.questHandler;
+    }
+
+    /**
      * Sets the platform this instance should be running on.
      *
      * @param platform the platform.
@@ -247,9 +266,83 @@ public class Syllesia {
     }
 
     /**
+     * Declares all the default event listeners in the base Syllesia game.
+     */
+    private void declareEvents() {
+        this.eventHandler.registerHandlers(new GameListener());
+    }
+
+    /**
+     * Declares all the default conversations in the base Syllesia game.
+     * TODO all titles, contents and choices to be converted to lang files.
+     */
+    private void declareConversations() {
+        Conversation conversation = new Conversation(Defaults.Conversation.FIRST_JOIN,
+                new Dialogue("GREETING")
+                        .setTitle("?")
+                        .setContent("Hello " + Placeholder.of(Placeholder.PLAYER_NAME) + "! Nice to finally meet you.")
+                        .addChoice("Who's there?", (player) -> "WHO_AM_I")
+                        .addChoice("Where am I?", (player) -> "SYLLESIA_INTRO")
+                        .validate(),
+                new Dialogue("WHO_AM_I")
+                        .setTitle("Maria")
+                        .setContent("I'm Maria. I'll be the entity overseeing your journey throughout your journey through Syllesia!")
+                        .addChoice("What's Syllesia?", (player) -> "SYLLESIA_INTRO")
+                        .validate(),
+                new Dialogue("SYLLESIA_INTRO")
+                        .setTitle("Maria")
+                        .setContent("This land you're standing in is Syllesia. This used to be where elven descendants roamed freely among each other, however we are currently in the midst of the Marken War.")
+                        .addChoice("The... Marken War???", (player) -> "WAR_INTRO")
+                        .addChoice("What's this got to do with me?", (player) -> "WAR_INTRO")
+                        .addChoice("So... why am I here? I'm not of elven descent.", (player) -> "WAR_INTRO")
+                        .validate(),
+                new Dialogue("WAR_INTRO")
+                        .setTitle("Maria")
+                        .setContent("We have many hunters, due to our unfaltering knowledge, and one has finally caught up with us. The warlocks. They have overtaken our city and forced us into hiding. You were transported here to help save us from captivity.")
+                        .addChoice("That sounds awful, how can I help?", (player) -> "QUEST_SPEECH")
+                        .validate(),
+                new Dialogue("QUEST_SPEECH")
+                        .setTitle("Maria")
+                        .setContent("Well... you're currently stuck in our labyrinth. You need to find your way out. You need to collect gold from the molten blocks to open the master door to our world. Each block has a limited supply, so you'll need to hunt.")
+                        .addChoice("How much gold will I need?", (player) -> "QUEST_ASSIGNMENT_H")
+                        .addChoice("I don't really feel like doing that.", (player) -> "QUEST_ASSIGNMENT_S")
+                        .validate(),
+                new Dialogue("QUEST_ASSIGNMENT_H")
+                        .setTitle("Maria")
+                        .setContent("You'll need to obtain 50 gold! Each block contains roughly 10 gold, so get hunting. We're counting on you!")
+                        .addChoice("I'll get on it!", (player) -> {
+                            player.sendTitle("You have accepted a quest!\nObtain 50 gold.", Timespan.of("3 seconds"));
+                            player.getUserdata().assignQuest(this.questHandler.getQuest(Defaults.Quest.HUMBLE_BEGINNINGS));
+                            return Dialogue.EXIT_POINTER;
+                        })
+                        .validate(),
+                new Dialogue("QUEST_ASSIGNMENT_S")
+                        .setTitle("Maria")
+                        .setContent("Well unfortunately, the device used to bring you here broke the second you landed. We tried to repair it while you were asleep but it didn't work. So you'll need to obtain 50 gold, and each block contains roughly 10 gold, we are counting on you!")
+                        .addChoice("I mean, if I don't have a choice...", (player) -> {
+                            player.sendTitle("You've got a quest!\nObtain 50 gold.", Timespan.of("3 seconds"));
+                            player.getUserdata().assignQuest(this.questHandler.getQuest(Defaults.Quest.HUMBLE_BEGINNINGS));
+                            return Dialogue.EXIT_POINTER;
+                        })
+                        .validate());
+        this.conversationHandler.registerConversation(conversation);
+    }
+
+    /**
+     * Declares all the default quests in the base Syllesia game.
+     */
+    private void declareQuests() {
+        Quest quest = new Quest(Defaults.Quest.HUMBLE_BEGINNINGS, (player) -> player.getCoins() >= 50, (player) -> {
+            player.sendTitle("You have obtained the 50 gold!", Timespan.of("5 seconds"));
+            // TODO complete level storyline from this quest.
+        });
+        this.questHandler.registerQuest(quest);
+    }
+
+    /**
      * Initialises all commands that come with Syllesia.
      */
-    private void setupCommands() {
+    private void declareCommands() {
         this.commandHandler.registerConverters(
                 new TextureConverter(),
                 new MapConverter(),
@@ -263,13 +356,6 @@ public class Syllesia {
             this.logger.debug("Admin Commands Enabled");
             this.commandHandler.registerCommandClass(new AdminCommands());
         }
-    }
-
-    /**
-     * Declares all the quests in the base Syllesia game.
-     */
-    private void declareQuests() {
-
     }
 
 }

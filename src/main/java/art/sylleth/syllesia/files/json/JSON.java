@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Class to handle the serialization and deserialization of JSON objects.
@@ -196,6 +195,7 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                     else if (inArray)
                         arrayDepth++;
                     else {
+                        Syllesia.getInstance().getLogger().debug("in array line arrayDepth: " + arrayDepth);
                         inArray = true;
                         Matcher matcher = KEY_PATTERN.matcher(currentLine.toString());
                         if (matcher.matches())
@@ -210,8 +210,10 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                     if (!inQuotes && !inArray)
                         throw new MalformedJsonException("Closing array found outside of an array.");
                     if (!inQuotes) {
+                        Syllesia.getInstance().getLogger().debug("currentKey[" + currentKey + "]");
+                        Syllesia.getInstance().getLogger().debug("line[" + currentLine + "]");
                         if (arrayDepth == 0) {
-                            if (currentLine.toString().equals("[]"))
+                            if (currentLine.toString().isEmpty())
                                 currentMap.put(currentKey, new ArrayList<>());
                             else {
                                 if (currentLine.toString().equals("\"\""))

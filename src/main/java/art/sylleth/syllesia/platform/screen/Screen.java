@@ -36,12 +36,12 @@ public class Screen {
      */
     public void update(Camera camera, int[] pixels) {
         // Clear camera.
-        for (int i = 0; i < (pixels.length / 2); i++)
-            if (pixels[i] != Misc.fromHex("004962").getRGB())
-                pixels[i] = Misc.fromHex("004962").getRGB();
-        for (int i = pixels.length / 2; i < pixels.length; i++)
-            if (pixels[i] != Misc.fromHex("281b0d").getRGB())
-                pixels[i] = Misc.fromHex("281b0d").getRGB();
+        for (int i = 0; i < (pixels.length / 2); i++) // Sky
+            if (pixels[i] != Misc.fromHex("263f5e").getRGB())
+                pixels[i] = Misc.fromHex("263f5e").getRGB();
+        for (int i = pixels.length / 2; i < pixels.length; i++) // Floor
+            if (pixels[i] != Misc.fromHex("524f52").getRGB())
+                pixels[i] = Misc.fromHex("524f52").getRGB();
         Location location = camera.getLocation();
         int[][] map = location.getMap().getMatrix();
         double[] zBuffer = new double[width];

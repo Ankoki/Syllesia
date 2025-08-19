@@ -90,6 +90,16 @@ public class Player {
     }
 
     /**
+     * Gets the Userdata of this player.
+     *
+     * @return the userdata.
+     */
+    @NotNull
+    public Userdata getUserdata() {
+        return this.userdata;
+    }
+
+    /**
      * Gets the amount of coins this player has.
      *
      * @return the coin amount.
@@ -228,6 +238,7 @@ public class Player {
      * Sends a title message to the player.
      * If another title is sent after this, any previous titles will be overwritten.
      * You may provide null for these parameters to prematurely erase a title that is being shown.
+     * TODO Title class containing fonts, colours and text modifiers.
      *
      * @param text the text to show.
      * @param timespan the amount of time this title should be shown for.
@@ -305,7 +316,8 @@ public class Player {
 
     /**
      * Gets the conversation this player is currently having.
-     * @return
+     *
+     * @return the conversation the player is currently in.
      */
     @Nullable
     public Conversation getCurrentConversation() {

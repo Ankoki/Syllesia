@@ -25,8 +25,10 @@ public class GameListener implements EventManager {
     @Listener
     private void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (player.getUserdata().getQuest(Defaults.Quest.HUMBLE_BEGINNINGS) == null && !player.getUserdata().hasCompletedQuest(Defaults.Quest.HUMBLE_BEGINNINGS)) {
-            Conversation conversation = Syllesia.getInstance().getConversationHandler().getConversation(Defaults.Conversation.FIRST_JOIN);
+        if (player.getUserdata().getQuest(Defaults.Quest.HUMBLE_BEGINNINGS) == null &&
+                !player.getUserdata().hasCompletedQuest(Defaults.Quest.HUMBLE_BEGINNINGS)) {
+            Conversation conversation = Syllesia.getInstance().getConversationHandler()
+                    .getConversation(Defaults.Conversation.FIRST_JOIN);
             player.openDialogue(conversation, conversation.getStartDialogue());
         }
     }

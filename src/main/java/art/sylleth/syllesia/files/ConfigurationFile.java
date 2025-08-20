@@ -165,7 +165,7 @@ public abstract class ConfigurationFile {
             case KEY_VAL:
                 StringBuilder builder = new StringBuilder();
                 for (Map.Entry<String, Object> entry : map.entrySet())
-                    builder.append(entry.getKey()).append("=").append(String.valueOf(entry.getValue())).append("\n");
+                    builder.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
                 builder.setLength(builder.length() - 1);
                 fin = builder.toString();
                 break;

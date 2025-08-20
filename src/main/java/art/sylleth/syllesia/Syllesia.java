@@ -251,8 +251,8 @@ public class Syllesia {
      * Spawns the entities used by the base game.
      */
     private void spawnEntities() {
-        Map ruins = this.getMap("ruins");
-        this.getMap("ruins").addEntity(new ElvenDeity(new Location(2.5, 12, 0.2, -0.9, -0.3, -0.1, ruins)));
+        Map ruins = this.getMap("labyrinth");
+        this.getMap("labyrinth").addEntity(new ElvenDeity(new Location(2.5, 12, 0.2, -0.9, -0.3, -0.1, ruins)));
     }
 
     /**
@@ -286,30 +286,38 @@ public class Syllesia {
                         .validate(),
                 new Dialogue("WHO_AM_I")
                         .setTitle("Maria")
-                        .setContent("I'm Maria. I'll be the entity overseeing your journey throughout your journey through Syllesia!")
+                        .setContent("I'm Maria. I'll be the entity overseeing your journey throughout your journey " +
+                                "through Syllesia!")
                         .addChoice("What's Syllesia?", (player) -> "SYLLESIA_INTRO")
                         .validate(),
                 new Dialogue("SYLLESIA_INTRO")
                         .setTitle("Maria")
-                        .setContent("This land you're standing in is Syllesia. This used to be where elven descendants roamed freely among each other, however we are currently in the midst of the Marken War.")
+                        .setContent("This land you're standing in is Syllesia. This used to be where elven descendants " +
+                                "roamed freely among each other, however we are currently in the midst of the " +
+                                "Marken War.")
                         .addChoice("The... Marken War???", (player) -> "WAR_INTRO")
                         .addChoice("What's this got to do with me?", (player) -> "WAR_INTRO")
                         .addChoice("So... why am I here? I'm not of elven descent.", (player) -> "WAR_INTRO")
                         .validate(),
                 new Dialogue("WAR_INTRO")
                         .setTitle("Maria")
-                        .setContent("We have many hunters, due to our unfaltering knowledge, and one has finally caught up with us. The warlocks. They have overtaken our city and forced us into hiding. You were transported here to help save us from captivity.")
+                        .setContent("We have many hunters, due to our unfaltering knowledge, and one has finally " +
+                                "caught up with us. The warlocks. They have overtaken our city and forced us into " +
+                                "hiding. You were transported here to help save us from captivity.")
                         .addChoice("That sounds awful, how can I help?", (player) -> "QUEST_SPEECH")
                         .validate(),
                 new Dialogue("QUEST_SPEECH")
                         .setTitle("Maria")
-                        .setContent("Well... you're currently stuck in our labyrinth. You need to find your way out. You need to collect gold from the molten blocks to open the master door to our world. Each block has a limited supply, so you'll need to hunt.")
+                        .setContent("Well... you're currently stuck in our labyrinth. You need to find your way out. " +
+                                "You need to collect gold from the molten blocks to open the master door to our world." +
+                                " Each block has a limited supply, so you'll need to hunt.")
                         .addChoice("How much gold will I need?", (player) -> "QUEST_ASSIGNMENT_H")
                         .addChoice("I don't really feel like doing that.", (player) -> "QUEST_ASSIGNMENT_S")
                         .validate(),
                 new Dialogue("QUEST_ASSIGNMENT_H")
                         .setTitle("Maria")
-                        .setContent("You'll need to obtain 50 gold! Each block contains roughly 10 gold, so get hunting. We're counting on you!")
+                        .setContent("You'll need to obtain 50 gold! Each block contains roughly 10 gold, so get " +
+                                "hunting. We're counting on you!")
                         .addChoice("I'll get on it!", (player) -> {
                             player.sendTitle("You have accepted a quest!\nObtain 50 gold.", Timespan.of("3 seconds"));
                             player.getUserdata().assignQuest(this.questHandler.getQuest(Defaults.Quest.HUMBLE_BEGINNINGS));
@@ -318,7 +326,9 @@ public class Syllesia {
                         .validate(),
                 new Dialogue("QUEST_ASSIGNMENT_S")
                         .setTitle("Maria")
-                        .setContent("Well unfortunately, the device used to bring you here broke the second you landed. We tried to repair it while you were asleep but it didn't work. So you'll need to obtain 50 gold, and each block contains roughly 10 gold, we are counting on you!")
+                        .setContent("Well unfortunately, the device used to bring you here broke the second you " +
+                                "landed. We tried to repair it while you were asleep but it didn't work. So you'll need " +
+                                "to obtain 50 gold, and each block contains roughly 10 gold, we are counting on you!")
                         .addChoice("I mean, if I don't have a choice...", (player) -> {
                             player.sendTitle("You've got a quest!\nObtain 50 gold.", Timespan.of("3 seconds"));
                             player.getUserdata().assignQuest(this.questHandler.getQuest(Defaults.Quest.HUMBLE_BEGINNINGS));
@@ -332,7 +342,9 @@ public class Syllesia {
      * Declares all the default quests in the base Syllesia game.
      */
     private void declareQuests() {
-        Quest quest = new Quest(Defaults.Quest.HUMBLE_BEGINNINGS, (player) -> player.getCoins() >= 50, (player) -> {
+        Quest quest = new Quest(Defaults.Quest.HUMBLE_BEGINNINGS,
+                (player) -> player.getCoins() >= 50,
+                (player) -> {
             player.sendTitle("You have obtained the 50 gold!", Timespan.of("5 seconds"));
             // TODO complete level storyline from this quest.
         });

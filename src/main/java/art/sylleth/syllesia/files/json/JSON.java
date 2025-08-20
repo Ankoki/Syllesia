@@ -218,6 +218,8 @@ public class JSON extends LinkedHashMap<String, Object> implements Map<String, O
                             else {
                                 if (currentLine.toString().equals("\"\""))
                                     currentList.add("");
+                                else if (currentLine.toString().startsWith("\"") && currentLine.toString().endsWith("\""))
+                                    currentList.add(StringUtils.removeQuotes(currentLine.toString()));
                                 else
                                     currentList.add(JSON.parseValue(StringUtils.removeQuotes(currentLine.toString())));
                                 currentMap.put(currentKey, currentList);
